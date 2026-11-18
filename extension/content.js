@@ -1407,17 +1407,6 @@
     return { page: location.href, links: out };
   }
 
-  // Receive only media candidates reported by the page-world observer.
-  // The isolated content script is the bridge to the extension background.
-  addEventListener("message", (event) => {
-    if (event.source !== window || !event.data || event.data.__revoMediaHook !== 1) return;
-    const d = event.data;
-    if (typeof d.url !== "string" || !/^https?:\/\//i.test(d.url)) return;
-    if (!/\.m3u8(?:[?#]|$)|\.mpd(?:[?#]|$)|\.(?:mp4|m4v|webm|mov|mkv|ogv|avi|mp3|m4a|aac|wav|flac|ogg)(?:[?#]|$)/i.test(d.url) &&
-        !/mpegurl|dash\+xml/i.test(String(d.mime || ""))) return;
-    chrome.runtime.sendMessage({ type: "revo-network-media", url: d.url, mime: d.mime || "" }).catch?.(() => {});
-  }, false);
-
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg.type === "revo-media") update(msg.items);
     if (msg.type === "revo-collect-links") {
