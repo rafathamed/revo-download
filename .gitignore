@@ -1,0 +1,10 @@
+/target
+**/*.rs.bk
+build-cache/
+signing/
+__pycache__/
+tools/ffmpeg/win64/
+
+# Private REVO release signing seed — never commit
+REVO_UPDATE_SIGNING_KEY.txt
+signing/

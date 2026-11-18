@@ -1,0 +1,32 @@
+REVO Download uses the following third-party components under their respective licenses.
+
+Slint (user interface toolkit) - https://slint.dev
+  Used under the Slint Royalty-free Desktop, Mobile, and Web Applications License 2.0.
+
+yt-dlp - https://github.com/yt-dlp/yt-dlp
+  The Unlicense (public domain).
+
+FFmpeg - https://github.com/FFmpeg/FFmpeg
+  The ffmpeg program in the "tools" folder is REVO Download's own small build
+  of the unmodified FFmpeg sources (version in ffmpeg-version.txt), made with
+  tools/ffmpeg/build.sh from the REVO Download sources. It is licensed under
+  the GNU Lesser General Public License version 3 or later (see
+  ffmpeg-LICENSE.txt in the "tools" folder).
+
+LAME - https://lame.sourceforge.io
+  Built into that ffmpeg program to make MP3 files. GNU Lesser General Public
+  License (see lame-COPYING.txt in the "tools" folder).
+
+OpenH264 - https://github.com/cisco/openh264
+  Built into that ffmpeg program for the exact cut of "Download a part of a
+  video" (the picture of the part is made again). BSD 2-Clause License (see
+  openh264-LICENSE.txt in the "tools" folder).
+
+librqbit - https://github.com/ikatson/rqbit
+  The torrent library built into the program (sharing, magnet links, DHT).
+  Apache License 2.0.
+
+Rust crates (tokio, reqwest, serde, chrono, tiny_http, arboard, rfd, tray-icon,
+regex, sha2, aes, cbc, url, directories, filetime, ring, native-tls,
+tokio-native-tls and their dependencies)
+  MIT, Apache-2.0 and/or ISC licenses.

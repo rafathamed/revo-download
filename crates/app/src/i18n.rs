@@ -1,0 +1,821 @@
+//! The texts made in Rust (statuses, messages) in the language of the
+//! program. Arabic is the table below; the other languages are the files
+//! lang/rs/<code>.json (English text -> translation). The window texts
+//! themselves are translated by Slint (lang/<code>/LC_MESSAGES/*.po).
+
+use std::collections::HashMap;
+use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::OnceLock;
+
+/// The languages of the program: code and own name, in the order of the
+/// Language list in Options.
+pub const LANGS: [(&str, &str); 8] = [
+    ("en", "English"),
+    ("ar", "العربية"),
+    ("fr", "Français"),
+    ("es", "Español"),
+    ("de", "Deutsch"),
+    ("pt", "Português"),
+    ("tr", "Türkçe"),
+    ("ru", "Русский"),
+];
+
+static CURRENT: AtomicUsize = AtomicUsize::new(0);
+
+/// A language code from LANGS, or "" = the language of Windows.
+pub fn effective(setting: &str) -> &'static str {
+    if let Some((code, _)) = LANGS.iter().find(|(c, _)| *c == setting) {
+        return code;
+    }
+    let sys = sys_locale::get_locale().unwrap_or_default().to_ascii_lowercase();
+    LANGS.iter().map(|(c, _)| *c).find(|c| sys.starts_with(c)).unwrap_or("en")
+}
+
+/// Place of a language in LANGS (0 = English for anything unknown).
+pub fn index_of(code: &str) -> usize {
+    LANGS.iter().position(|(c, _)| *c == code).unwrap_or(0)
+}
+
+/// Switch every window and every Rust text to this language.
+pub fn apply(lang: &str) {
+    CURRENT.store(index_of(lang), Ordering::Relaxed);
+    let _ = slint::select_bundled_translation(LANGS[index_of(lang)].0);
+}
+
+pub fn current() -> &'static str {
+    LANGS[CURRENT.load(Ordering::Relaxed) % LANGS.len()].0
+}
+
+/// The windows read from right to left (Arabic).
+pub fn is_rtl() -> bool {
+    current() == "ar"
+}
+
+#[allow(dead_code)]
+pub fn is_arabic() -> bool {
+    current() == "ar"
+}
+
+fn table(code: &str) -> Option<&'static HashMap<String, String>> {
+    static FR: OnceLock<HashMap<String, String>> = OnceLock::new();
+    static ES: OnceLock<HashMap<String, String>> = OnceLock::new();
+    static DE: OnceLock<HashMap<String, String>> = OnceLock::new();
+    static PT: OnceLock<HashMap<String, String>> = OnceLock::new();
+    static TR: OnceLock<HashMap<String, String>> = OnceLock::new();
+    static RU: OnceLock<HashMap<String, String>> = OnceLock::new();
+    let (cell, src) = match code {
+        "fr" => (&FR, include_str!("../lang/rs/fr.json")),
+        "es" => (&ES, include_str!("../lang/rs/es.json")),
+        "de" => (&DE, include_str!("../lang/rs/de.json")),
+        "pt" => (&PT, include_str!("../lang/rs/pt.json")),
+        "tr" => (&TR, include_str!("../lang/rs/tr.json")),
+        "ru" => (&RU, include_str!("../lang/rs/ru.json")),
+        _ => return None,
+    };
+    Some(cell.get_or_init(|| serde_json::from_str(src).unwrap_or_default()))
+}
+
+/// The text in the current language.
+pub fn t(en: &str) -> String {
+    match current() {
+        "en" => {}
+        "ar" => {
+            if let Some(ar) = lookup(en) {
+                return ar.to_string();
+            }
+        }
+        code => {
+            if let Some(v) = table(code).and_then(|m| m.get(en)) {
+                return v.clone();
+            }
+        }
+    }
+    en.to_string()
+}
+
+/// A text with "{}" places, filled in order.
+pub fn tf(en: &str, args: &[&dyn std::fmt::Display]) -> String {
+    let template = t(en);
+    let mut out = String::new();
+    let mut rest = template.as_str();
+    let mut i = 0;
+    while let Some(p) = rest.find("{}") {
+        out.push_str(&rest[..p]);
+        if let Some(a) = args.get(i) {
+            out.push_str(&a.to_string());
+        }
+        i += 1;
+        rest = &rest[p + 2..];
+    }
+    out.push_str(rest);
+    out
+}
+
+fn lookup(en: &str) -> Option<&'static str> {
+    AR.iter().find(|(k, _)| *k == en).map(|(_, v)| *v)
+}
+
+const AR: &[(&str, &str)] = &[
+    // statuses
+    ("Queued", "في الانتظار"),
+    ("Connecting…", "جارٍ الاتصال…"),
+    ("Downloading", "جارٍ التحميل"),
+    ("Assembling…", "جارٍ التجميع…"),
+    ("Paused", "متوقف مؤقتاً"),
+    ("Complete", "مكتمل"),
+    ("Error", "خطأ"),
+    ("Merging…", "جارٍ الدمج…"),
+    ("{}/{} parts", "{}/{} جزء"),
+    ("{}: video + audio", "{}: فيديو + صوت"),
+    ("{}: stream", "{}: بث"),
+    ("Receiving data…", "جارٍ استقبال البيانات…"),
+    ("Joining the parts…", "جارٍ تجميع الأجزاء…"),
+    ("Unknown", "غير معروف"),
+    ("Yes", "نعم"),
+    ("No", "لا"),
+    ("Finished", "انتهى"),
+    ("Waiting", "في الانتظار"),
+    ("{} downloading  ·  {}/s", "{} قيد التحميل  ·  {}/ث"),
+    ("Ready  ·  {} files in the list", "جاهز  ·  {} ملف في القائمة"),
+    ("Speed limiter: on ({} KB/s)", "محدد السرعة: يعمل ({} كيلو/ث)"),
+    ("Speed limiter: off", "محدد السرعة: متوقف"),
+    // categories (shown names)
+    ("Compressed", "مضغوطة"),
+    ("Documents", "مستندات"),
+    ("Music", "موسيقى"),
+    ("Programs", "برامج"),
+    ("Video", "فيديو"),
+    ("Images", "صور"),
+    ("General", "عام"),
+    // download file info
+    ("Paste a link and press Check", "الصق رابطاً واضغط فحص"),
+    ("Unknown size", "حجم غير معروف"),
+    ("+ audio", "+ صوت"),
+    ("Video + audio, joined after download", "فيديو + صوت، يُدمجان بعد التحميل"),
+    ("Video stream (HLS)", "بث فيديو (HLS)"),
+    ("Resume supported", "يدعم الاستئناف"),
+    ("No resume support", "لا يدعم الاستئناف"),
+    ("This address is already in the download list.", "هذا الرابط موجود بالفعل في قائمة التحميل."),
+    (
+        "This address opens a web page, not a file. The link may have expired or need a login.",
+        "هذا الرابط يفتح صفحة ويب وليس ملفاً. ربما انتهت صلاحيته أو يحتاج تسجيل دخول.",
+    ),
+    ("Please enter a valid http:// or https:// address", "من فضلك اكتب رابطاً صحيحاً يبدأ بـ http:// أو https://"),
+    // messages
+    (
+        "Remove every finished download from the list?\n(The files stay on the disk.)",
+        "حذف كل التحميلات المكتملة من القائمة؟\n(الملفات تبقى على القرص.)",
+    ),
+    (
+        "A short message about REVO Download was copied to the clipboard.\nPaste it in a chat or an e-mail to a friend.",
+        "تم نسخ رسالة قصيرة عن REVO Download إلى الحافظة.\nالصقها في محادثة أو بريد لصديقك.",
+    ),
+    ("REVO Download {}\n\nThe video downloader (yt-dlp) is up to date.\n\n{}", "REVO Download {}\n\nأداة الفيديو (yt-dlp) محدّثة.\n\n{}"),
+    ("Could not update yt-dlp:\n\n{}", "تعذّر تحديث yt-dlp:\n\n{}"),
+    ("Download these {} files again from the beginning?", "إعادة تحميل هذه الملفات ({}) من البداية؟"),
+    ("Download “{}” again from the beginning?", "إعادة تحميل “{}” من البداية؟"),
+    ("No valid http:// or https:// links", "لا توجد روابط صحيحة (http:// أو https://)"),
+    ("The address must start with http:// or https://", "يجب أن يبدأ الرابط بـ http:// أو https://"),
+    ("Put a * in the address where the number goes", "ضع * في الرابط مكان الرقم"),
+    ("From must be a letter", "خانة «من» يجب أن تكون حرفاً"),
+    ("To must be a letter", "خانة «إلى» يجب أن تكون حرفاً"),
+    ("From must come before To", "«من» يجب أن تأتي قبل «إلى»"),
+    ("From must be a number", "خانة «من» يجب أن تكون رقماً"),
+    ("To must be a number", "خانة «إلى» يجب أن تكون رقماً"),
+    ("From must be smaller than To", "«من» يجب أن تكون أصغر من «إلى»"),
+    ("That's more than 10000 files", "هذا أكثر من 10000 ملف"),
+    ("{} files\n\nFirst:  {}", "{} ملف\n\nالأول:  {}"),
+    ("\nSecond:  {}", "\nالثاني:  {}"),
+    ("\nLast:  {}", "\nالأخير:  {}"),
+    ("Could not change where it is saved: {}", "تعذّر تغيير مكان الحفظ: {}"),
+    ("Could not move the file:\n\n{}", "تعذّر نقل الملف:\n\n{}"),
+    ("SHA-256 of {}:\n\n{}\n\n(copied to the clipboard)", "SHA-256 للملف {}:\n\n{}\n\n(تم النسخ إلى الحافظة)"),
+    ("Could not read the file: {}", "تعذّرت قراءة الملف: {}"),
+    ("Delete downloads", "حذف التحميلات"),
+    ("Delete download", "حذف التحميل"),
+    (
+        "Remove these {} downloads from the download list?\n\nOnly the list entries are removed: the downloaded files stay on your computer.\n(Parts of unfinished downloads are cleaned up.)",
+        "إزالة هذه التحميلات ({}) من قائمة التحميل؟\n\nستُزال من القائمة فقط، وتبقى الملفات المحمّلة على جهازك كما هي.\n(تُحذف الأجزاء المؤقتة للتحميلات غير المكتملة.)",
+    ),
+    (
+        "Remove “{}” from the download list?\n\nOnly the list entry is removed: the file stays on your computer.",
+        "إزالة “{}” من قائمة التحميل؟\n\nستُزال من القائمة فقط، ويبقى الملف على جهازك كما هو.",
+    ),
+    (
+        "Delete the unfinished download “{}”?\nThe partly downloaded data will be removed.",
+        "حذف التحميل غير المكتمل “{}”؟\nسيتم حذف الجزء الذي تم تحميله.",
+    ),
+    (
+        "The download limit of {} MB every {} hours was reached, so the downloads were stopped.\nThey continue by themselves when the limit allows it again (Options > Connection).",
+        "تم الوصول لحد التحميل ({} ميجابايت كل {} ساعة) فتوقفت التحميلات.\nستكمل وحدها عندما يسمح الحد مرة أخرى (الخيارات > الاتصال).",
+    ),
+    ("Give the category a name", "اكتب اسماً للتصنيف"),
+    ("A category with this name already exists", "يوجد تصنيف بهذا الاسم بالفعل"),
+    ("The add-in talks to the program directly, without a port: no more \"REVO Download is not running\" while it runs, and a closed program is opened for a download.", "الإضافة تتكلم مع البرنامج مباشرة بدون منفذ: لم تعد تظهر رسالة \"REVO Download is not running\" والبرنامج يعمل، والبرنامج المغلق يُفتح من أجل التحميل."),
+    ("A power cut no longer loses the download list, the end of a download is never held by one slow connection, and a file that is already in the folder asks whether to replace it.", "انقطاع الكهرباء لم يعد يضيّع قائمة التحميلات، ونهاية التحميل لا يعطّلها اتصال بطيء واحد، والملف الموجود بالفعل في المجلد يسألك هل تستبدله."),
+    ("Replace it", "استبداله"),
+    ("New name (numbered)", "اسم جديد (برقم)"),
+    ("Cancel", "إلغاء"),
+    ("The file \"{}\" is already in this folder.\nReplace it, or save the new one with a numbered name?", "الملف \"{}\" موجود بالفعل في هذا المجلد.\nهل تريد استبداله، أم حفظ الجديد باسم برقم؟"),
+    ("Could not replace the file: {}", "تعذّر استبدال الملف: {}"),
+    ("Select all", "تحديد الكل"),
+    ("The site gave a page instead of the video (it protects its videos, or the link expired), so no broken file was kept. Play the video on its page and use the REVO Download button that appears on it.", "أعطى الموقع صفحة بدل الفيديو (الموقع يحمي فيديوهاته، أو انتهت صلاحية الرابط)، لذلك لم يُحفظ ملف تالف. شغّل الفيديو في صفحته واستخدم زر REVO Download الذي يظهر عليه."),
+    (
+        "This category comes with REVO Download and can't be deleted (you can change its file types in Properties).",
+        "هذا التصنيف أساسي في REVO Download ولا يمكن حذفه (يمكنك تغيير أنواع ملفاته من الخصائص).",
+    ),
+    (
+        "Delete the category “{}”?\nIts files stay where they are and move to their file type's category.",
+        "حذف التصنيف “{}”؟\nملفاته تبقى مكانها وتنتقل لتصنيف نوعها.",
+    ),
+    ("Found: {}", "تم العثور: {}"),
+    ("Not found", "غير موجود"),
+    ("The file was downloaded successfully", "تم تحميل الملف بنجاح"),
+    ("{} file  ·  {}", "ملف {}  ·  {}"),
+    ("Tip {} of {}", "نصيحة {} من {}"),
+    ("Could not save the list: {}", "تعذّر حفظ القائمة: {}"),
+    ("No download addresses were found in this file.", "لم يتم العثور على روابط تحميل في هذا الملف."),
+    (
+        "{} download(s) were added to the main download queue.\nStart them with Start Queue, or one by one with Resume.",
+        "تمت إضافة {} تحميل إلى قائمة الانتظار الرئيسية.\nابدأها بـ «بدء القائمة»، أو واحداً واحداً بـ «استئناف».",
+    ),
+    ("shut down the computer", "إيقاف تشغيل الكمبيوتر"),
+    ("hibernate the computer", "إسبات الكمبيوتر"),
+    ("put the computer to sleep", "وضع الكمبيوتر في وضع السكون"),
+    ("Type the address of the start page (http:// or https://)", "اكتب رابط صفحة البداية (http:// أو https://)"),
+    ("Starting…", "جارٍ البدء…"),
+    ("Check the files you want first", "حدّد الملفات التي تريدها أولاً"),
+    ("{} file(s) checked", "{} ملف محدد"),
+    ("{} file(s) added to the queue", "تمت إضافة {} ملف إلى القائمة"),
+    ("{} of {} pages explored  ·  {} files found", "تم استكشاف {} من {} صفحة  ·  {} ملف"),
+    ("  ·  done", "  ·  انتهى"),
+    ("Give the queue a name", "اكتب اسماً للقائمة"),
+    ("The start time must look like 02:30", "وقت البدء يجب أن يكون مثل 02:30"),
+    ("The stop time must look like 08:00", "وقت الإيقاف يجب أن يكون مثل 08:00"),
+    ("The date must look like 2026-12-31", "التاريخ يجب أن يكون مثل 2026-12-31"),
+    ("Could not create the queue: {}", "تعذّر إنشاء القائمة: {}"),
+    ("The main download queue can't be deleted.", "لا يمكن حذف قائمة التحميل الرئيسية."),
+    ("Delete the queue “{}”?\nIts files move to the main download queue.", "حذف القائمة “{}”؟\nملفاتها تنتقل إلى قائمة التحميل الرئيسية."),
+    ("Downloaded in the current period: {}", "تم تحميل في الفترة الحالية: {}"),
+    (
+        "When the limit is reached the downloads stop, and go on by themselves later.",
+        "عند الوصول للحد تتوقف التحميلات، وتكمل وحدها لاحقاً.",
+    ),
+    ("Choose a download folder (Save To)", "اختر مجلد التحميل (الحفظ في)"),
+    ("Type the proxy address (Proxy / Server)", "اكتب عنوان البروكسي (البروكسي / الخادم)"),
+    ("The remembered category folders were cleared.", "تم مسح مجلدات التصنيفات المحفوظة."),
+    ("Type the server, e.g. example.com", "اكتب الخادم، مثلاً example.com"),
+    ("Type the site and the user name", "اكتب الموقع واسم المستخدم"),
+    ("Could not save: {}", "تعذّر الحفظ: {}"),
+    (
+        "Restart REVO Download to use the new port. Set the same port in the browser extension.",
+        "أعد تشغيل REVO Download لاستخدام المنفذ الجديد، واضبط نفس المنفذ في إضافة المتصفح.",
+    ),
+    (
+        "Paste the playlist address (https://…/playlist?list=…)",
+        "الصق رابط قائمة التشغيل (https://…/playlist?list=…)",
+    ),
+    ("Getting the list of videos… (a few seconds)", "جارٍ جلب قائمة الفيديوهات… (ثوانٍ قليلة)"),
+    ("No videos were found at this address.", "لم يتم العثور على فيديوهات في هذا الرابط."),
+    ("Could not get the list: {}", "تعذّر جلب القائمة: {}"),
+    ("Check the videos you want first", "حدّد الفيديوهات التي تريدها أولاً"),
+    ("Choose where to save the videos", "اختر مكان حفظ الفيديوهات"),
+    ("{} of {} videos checked", "{} من {} فيديو محدد"),
+    ("{} videos", "{} فيديو"),
+    ("Click to add", "اضغط للإضافة"),
+    ("REVO Download – download manager", "REVO Download – برنامج تحميل"),
+    ("Click to add from the store", "اضغط للإضافة من المتجر"),
+    ("{} is not installed on this computer.", "{} غير مثبّت على هذا الكمبيوتر."),
+    ("{} opened the store page: click \"Add\" / \"Get\" there.", "فتح {} صفحة المتجر: اضغط \"إضافة\" / \"Get\" هناك."),
+    ("Could not start the update:\n\n{}", "تعذّر بدء التحديث:\n\n{}"),
+    ("A new version is being prepared. It is installed by itself when it is ready.", "يجري تجهيز إصدار جديد، وسيُثبَّت تلقائياً عندما يكون جاهزاً."),
+    ("Could not check for updates:\n\n{}", "تعذّر البحث عن تحديثات:\n\n{}"),
+    ("REVO Download is up to date (version {}).", "REVO Download محدَّث (الإصدار {})."),
+    ("Version {} is available. This copy was not installed with the setup, so it cannot update itself.", "الإصدار {} متاح. هذه النسخة لم تُثبَّت بملف الإعداد، لذلك لا يمكنها تحديث نفسها."),
+    ("Version {} is available. It is being prepared now and installed by itself; REVO Download opens again after that.", "الإصدار {} متاح. يجري تجهيزه الآن وتثبيته تلقائياً، ثم يُفتح REVO Download من جديد."),
+    ("Could not get the update:\n\n{}", "تعذّر الحصول على التحديث:\n\n{}"),
+    (
+        "The extension folder was not found next to RevoDownload.exe. Install REVO Download again.",
+        "لم يتم العثور على مجلد الإضافة بجانب RevoDownload.exe. ثبّت REVO Download مرة أخرى.",
+    ),
+    (
+        "Firefox opened its add-ons debugging page.\n1. Click \"Load Temporary Add-on…\".\n2. Paste the folder path (Ctrl+V, it is already copied) and open the file \"manifest.json\" in it.\n\nFirefox removes add-ons loaded this way when it closes. To keep it for good the extension must be signed by Mozilla (free) – ask for the signed version.",
+        "فتح Firefox صفحة تصحيح الإضافات.\n1. اضغط \"Load Temporary Add-on…\".\n2. الصق مسار المجلد (Ctrl+V، تم نسخه بالفعل) وافتح ملف \"manifest.json\" بداخله.\n\nيحذف Firefox الإضافات المحمّلة بهذه الطريقة عند إغلاقه. لتبقى دائماً يجب أن توقّعها Mozilla (مجاناً) – اطلب النسخة الموقّعة.",
+    ),
+    (
+        "{} opened its extensions page.\n1. Turn on \"Developer mode\" (a switch on that page).\n2. Click \"Load unpacked\".\n3. Paste the folder path (Ctrl+V – it is already copied) and click \"Select folder\".\n\nThat's all: the REVO Download icon appears next to the address bar. You do this only once.",
+        "فتح {} صفحة الإضافات.\n1. شغّل \"Developer mode\" (وضع المطوّر) من المفتاح الموجود في الصفحة.\n2. اضغط \"Load unpacked\".\n3. الصق مسار المجلد (Ctrl+V – تم نسخه بالفعل) واضغط \"Select folder\".\n\nهذا كل شيء: ستظهر أيقونة REVO Download بجانب شريط العنوان. تفعل هذا مرة واحدة فقط.",
+    ),
+    // tips
+    (
+        "Copy a download link anywhere (Ctrl+C) and REVO Download offers to download it.",
+        "انسخ أي رابط تحميل (Ctrl+C) وسيعرض عليك REVO Download تحميله.",
+    ),
+    (
+        "Play a video on a web page and click \"Download this video\" above it to choose the quality.",
+        "شغّل أي فيديو في صفحة ويب واضغط \"Download this video\" فوقه لتختار الجودة.",
+    ),
+    (
+        "Right click a web page in Chrome or Edge and choose \"Download all links with REVO Download\" to pick files from the page.",
+        "اضغط كليك يمين على أي صفحة في كروم أو إيدج واختر \"Download all links with REVO Download\" لتختار ملفات من الصفحة.",
+    ),
+    (
+        "Every download uses up to 32 connections. If a server is slow with many, add it to Options > Connection > Exceptions.",
+        "كل تحميل يستخدم حتى 32 اتصالاً. إذا كان خادم ما بطيئاً مع اتصالات كثيرة، أضفه في الخيارات > الاتصال > الاستثناءات.",
+    ),
+    (
+        "Make a queue (Queues > New queue) and set \"1 file at the same time\" to download files one after another.",
+        "أنشئ قائمة انتظار واضبط \"ملف واحد في نفس الوقت\" لتحميل الملفات واحداً تلو الآخر.",
+    ),
+    (
+        "The Scheduler can start a queue at night and shut down the computer when everything is finished.",
+        "المجدول يستطيع بدء قائمة بالليل وإيقاف الكمبيوتر عند انتهاء كل شيء.",
+    ),
+    (
+        "Downloads > When all downloads finish lets you shut down, sleep or hibernate the computer after the last file.",
+        "التحميلات > عند انتهاء كل التحميلات تتيح لك إيقاف الكمبيوتر أو السكون أو الإسبات بعد آخر ملف.",
+    ),
+    (
+        "The speed limiter on the toolbar keeps your internet usable for other things while downloading.",
+        "محدد السرعة في شريط الأدوات يبقي الإنترنت متاحاً لأشياء أخرى أثناء التحميل.",
+    ),
+    (
+        "Add Batch > \"Address with a pattern\" downloads img001.jpg … img100.jpg from one address with a *.",
+        "إضافة مجموعة > \"رابط بنمط\" يحمّل img001.jpg … img100.jpg من رابط واحد فيه *.",
+    ),
+    (
+        "An old link expired? Right click the download > \"Refresh download address\" and continue from where it stopped.",
+        "انتهت صلاحية رابط قديم؟ كليك يمين على التحميل > \"تحديث رابط التحميل\" وأكمل من حيث توقف.",
+    ),
+    (
+        "Right click a category in the sidebar > Properties to change its file types and its own folder.",
+        "كليك يمين على تصنيف في الشريط الجانبي > الخصائص لتغيير أنواع ملفاته ومجلده.",
+    ),
+    (
+        "View > Columns shows more columns, like Date Added, Save To and Referer.",
+        "عرض > الأعمدة يظهر أعمدة أكثر مثل تاريخ الإضافة والحفظ في والمُحيل.",
+    ),
+    (
+        "Tasks > Run site grabber collects every image, video or archive of a web site.",
+        "المهام > تشغيل جامع المواقع يجمع كل صور أو فيديوهات أو ملفات موقع ما.",
+    ),
+    (
+        "Hold Alt while clicking a link in the browser to let the browser download it by itself.",
+        "اضغط Alt أثناء الضغط على رابط في المتصفح ليحمّله المتصفح بنفسه.",
+    ),
+    // 1.0.4
+    (
+        "Firefox opened the REVO Download add-on.\n1. Click \"Add\" in the message Firefox shows.\n2. Then click \"OK\".\n\nThe add-on is signed by Mozilla, so it stays in Firefox after you close it and updates by itself.",
+        "فتح فايرفوكس إضافة REVO Download.\n1. اضغط \"إضافة\" في الرسالة التي يعرضها فايرفوكس.\n2. ثم اضغط \"حسنًا\".\n\nالإضافة موقّعة من Mozilla، لذلك تبقى في فايرفوكس بعد إغلاقه وتتحدّث وحدها.",
+    ),
+    ("REVO Download was updated to version {} by itself.", "تم تحديث REVO Download تلقائيًا إلى الإصدار {}."),
+    ("What's new:", "الجديد في هذا الإصدار:"),
+    (
+        "A \"Download this video\" button on every video of a page, and you can drag it anywhere on the video.",
+        "زر \"تحميل هذا الفيديو\" على كل فيديو في الصفحة، ويمكنك سحبه إلى أي مكان على الفيديو.",
+    ),
+    (
+        "Videos with several sound tracks: the original language is downloaded, not a dubbed one.",
+        "الفيديوهات ذات المسارات الصوتية المتعددة: يُحمَّل الصوت باللغة الأصلية وليس المدبلج.",
+    ),
+    (
+        "New languages: French, Spanish, German, Portuguese, Turkish and Russian.",
+        "لغات جديدة: الفرنسية والإسبانية والألمانية والبرتغالية والتركية والروسية.",
+    ),
+    (
+        "Five new themes and a window opacity setting (View > Theme).",
+        "خمسة مظاهر جديدة وإعداد لشفافية النافذة (عرض > المظهر).",
+    ),
+    (
+        "Brave is supported (Help > Add REVO Download to my browser).",
+        "دعم متصفح Brave (مساعدة > إضافة REVO Download إلى متصفحي).",
+    ),
+    ("Firefox: the add-on stays in Firefox after it is closed.", "فايرفوكس: الإضافة تبقى بعد إغلاق المتصفح."),
+    (
+        "The browser add-in window is bigger; its settings moved to the add-in's own settings page.",
+        "نافذة إضافة المتصفح أكبر، وإعداداتها انتقلت إلى صفحة الإعدادات الخاصة بالإضافة.",
+    ),
+    ("Windows of the program open in front of the main window.", "نوافذ البرنامج تفتح أمام النافذة الرئيسية."),
+    (
+        "A new playlist icon, and a smaller icon on the window title.",
+        "أيقونة جديدة لقوائم التشغيل، وأيقونة أصغر في شريط عنوان النافذة.",
+    ),
+    // 1.0.5
+    (
+        "The main window can be maximized to the full screen.",
+        "نافذة البرنامج الرئيسية يمكن تكبيرها لملء الشاشة.",
+    ),
+    (
+        "Columns of the list can be resized and moved by dragging their titles.",
+        "أعمدة القائمة يمكن تكبيرها وتصغيرها ونقلها بسحب عناوينها.",
+    ),
+    (
+        "Toolbar names are bold, and the size of the video button can be chosen in the add-in's window.",
+        "أسماء أزرار الشريط بخط عريض، ويمكن اختيار حجم زر الفيديو من نافذة الإضافة.",
+    ),
+    (
+        "Pictures",
+        "الصور",
+    ),
+    (
+        "Checking for updates…",
+        "جارٍ البحث عن تحديثات…",
+    ),
+    (
+        "This is version {}.",
+        "هذا هو الإصدار {}.",
+    ),
+    (
+        "Could not check for updates",
+        "تعذّر البحث عن تحديثات",
+    ),
+    (
+        "REVO Download is up to date",
+        "REVO Download محدَّث",
+    ),
+    (
+        "Version {} is the newest version.",
+        "الإصدار {} هو أحدث إصدار.",
+    ),
+    (
+        "Version {} is available",
+        "الإصدار {} متاح",
+    ),
+    (
+        "This copy was not installed with the setup, so it cannot update itself.",
+        "هذه النسخة لم تُثبَّت ببرنامج الإعداد، لذلك لا يمكنها تحديث نفسها.",
+    ),
+    (
+        "Downloading version {}…",
+        "جارٍ تحميل الإصدار {}…",
+    ),
+    (
+        "Installing version {}…",
+        "جارٍ تثبيت الإصدار {}…",
+    ),
+    (
+        "REVO Download closes now and opens again when it is installed.",
+        "سيُغلق REVO Download الآن ويفتح من جديد بعد التثبيت.",
+    ),
+    (
+        "Could not get the update",
+        "تعذّر الحصول على التحديث",
+    ),
+    (
+        "Text size, font and a picture behind the main window (Options > Appearance).",
+        "حجم الخط والخط وصورة خلف النافذة الرئيسية (الخيارات > المظهر).",
+    ),
+    (
+        "Windows open in the middle of the screen; only the main window can be maximized.",
+        "النوافذ تفتح في منتصف الشاشة، والنافذة الرئيسية وحدها يمكن تكبيرها.",
+    ),
+    (
+        "Drag a finished file from the list onto the desktop or into a folder.",
+        "اسحب ملفًا مكتملًا من القائمة إلى سطح المكتب أو إلى أي مجلد.",
+    ),
+    (
+        "The progress of a download shows on its taskbar button.",
+        "تقدّم التحميل يظهر على زر النافذة في شريط المهام.",
+    ),
+    (
+        "Check for updates shows the check, the download and the installation in its own window.",
+        "البحث عن تحديثات يعرض البحث والتحميل والتثبيت في نافذة خاصة.",
+    ),
+    (
+        "Playlist videos are saved with their own original titles and their original sound.",
+        "فيديوهات قوائم التشغيل تُحفظ بعناوينها الأصلية وصوتها الأصلي.",
+    ),
+    (
+        "Closing a download's window (X) stops the download; Resume opens it again.",
+        "إغلاق نافذة التحميل (X) يوقف التحميل، و«استئناف» يفتحها من جديد.",
+    ),
+    (
+        "The download button on videos in the browser is smaller, and its size can be changed in the add-in's settings.",
+        "زر التحميل على الفيديوهات في المتصفح أصبح أصغر، ويمكن تغيير حجمه من إعدادات الإضافة.",
+    ),
+    (
+        "Updates are signed: REVO Download installs only updates made by its developer.",
+        "التحديثات أصبحت موقّعة: REVO Download لا يثبّت إلا التحديثات الصادرة من مطوّره.",
+    ),
+    (
+        "Downloaded files are marked as coming from the internet, so Windows warns before opening an unsafe file.",
+        "الملفات المحمّلة تُعلَّم بأنها من الإنترنت، فيحذّرك ويندوز قبل فتح ملف غير آمن.",
+    ),
+    (
+        "Saved passwords and site logins are encrypted with your Windows account.",
+        "كلمات المرور وبيانات دخول المواقع المحفوظة أصبحت مشفّرة بحساب ويندوز الخاص بك.",
+    ),
+    (
+        "The video helpers (yt-dlp and ffmpeg) are checked before they are used.",
+        "أدوات الفيديو (yt-dlp و ffmpeg) يتم التحقق منها قبل استخدامها.",
+    ),
+    (
+        "More protection against harmful web pages and links.",
+        "حماية أكبر من صفحات الويب والروابط الضارة.",
+    ),
+    // 1.0.6
+    ("Torrents: open a .torrent file or a magnet link and choose which of its files to download.", "التورنت: افتح ملف تورنت أو رابط magnet واختر أي ملفاته تريد تحميلها."),
+    ("A dropped internet connection no longer stops a download: it waits and goes on by itself from where it was.", "انقطاع الإنترنت لم يعد يوقف التحميل: ينتظر ثم يكمل وحده من حيث توقف."),
+    ("An expired link or a removed file is explained in plain words, with what to do about it.", "الرابط المنتهي أو الملف المحذوف يُشرح بكلمات بسيطة مع ما يجب فعله."),
+    ("Watch a video or listen to a song while it is still downloading (right-click > Play while downloading).", "شاهد فيديو أو استمع لملف صوتي وهو ما زال يُحمَّل، دون انتظار انتهاء التحميل (زر الفأرة الأيمن > تشغيل أثناء التحميل)."),
+    ("YouTube videos can be saved as MP3 files.", "يمكن حفظ فيديوهات يوتيوب كملفات MP3."),
+    ("Qualities are shown in plain words too: SD, HD, Full HD, 2K, 4K.", "الجودات تظهر أيضًا بكلمات واضحة: SD وHD وFull HD و2K و4K."),
+    ("The video button in the browser lists every quality with its format, length and size, has a size slider, and works on videos in frames, in full screen and in more players.", "زر الفيديو في المتصفح يعرض كل جودة بنوعها ومدتها وحجمها، وله شريط لتغيير حجمه، ويعمل على الفيديوهات داخل الإطارات وفي ملء الشاشة وفي مشغلات أكثر."),
+    ("Videos that need a login or an age check use your browser's sign-in, also in playlists.", "الفيديوهات التي تحتاج تسجيل دخول أو تأكيد العمر تستخدم تسجيل دخولك في المتصفح، وفي قوائم التشغيل أيضًا."),
+    ("Toolbar buttons explain what they do when the mouse rests on them.", "أزرار شريط الأدوات تشرح وظيفتها عند وضع الفأرة عليها."),
+    ("A download's window can be hidden next to the clock.", "يمكن إخفاء نافذة التحميل بجوار الساعة."),
+    ("File icons are easier to tell apart.", "أيقونات الملفات أصبحت أسهل في التمييز."),
+    ("Menus show one clear mark on the chosen option.", "القوائم تعرض علامة واحدة واضحة على الاختيار المحدد."),
+    ("The window of a finished download no longer offers \"Open with…\", so a file can't be changed by mistake.", "نافذة التحميل المكتمل لم تعد تعرض \"فتح باستخدام…\"، فلا يتغير الملف بالخطأ."),
+    ("Fixed a crash around the Tips window.", "تم إصلاح توقف مفاجئ كان يحدث مع نافذة النصائح."),
+    ("Only videos and sound files can be played while they download.", "يمكن تشغيل الفيديوهات والملفات الصوتية فقط أثناء تحميلها."),
+    ("This video comes in many small pieces that are joined at the end: it can be played when the download is done.", "هذا الفيديو يأتي في أجزاء صغيرة كثيرة تُجمع في النهاية: يمكن تشغيله بعد انتهاء التحميل."),
+    ("Nothing to play yet: wait until a part of the file is downloaded, then try again.", "لا يوجد ما يمكن تشغيله بعد: انتظر حتى يُحمَّل جزء من الملف ثم حاول مرة أخرى."),
+    ("Could not open the player: {}", "تعذر فتح المشغل: {}"),
+    ("This video needs a login or an age check. Open it once in the browser where you are signed in (with the REVO Download extension), then try again.", "هذا الفيديو يحتاج تسجيل دخول أو تأكيد العمر. افتحه مرة في المتصفح الذي سجلت فيه دخولك (مع إضافة REVO Download) ثم حاول مرة أخرى."),
+    ("The link has expired or the file was removed. Right-click the download and use \"Refresh download address\".", "انتهت صلاحية الرابط أو حُذف الملف. اضغط بزر الفأرة الأيمن على التحميل واستخدم \"تحديث رابط التحميل\"."),
+    ("Waiting for connection…", "في انتظار الاتصال…"),
+    ("Getting the file list…", "جارٍ جلب قائمة الملفات…"),
+    ("Torrent: {} peers", "تورنت: {} أجهزة متصلة"),
+    ("Torrent", "تورنت"),
+    ("No internet connection - it will continue by itself when it is back…", "لا يوجد اتصال بالإنترنت - سيكمل التحميل وحده عند عودته…"),
+    ("{} of {} files checked", "تم تحديد {} من {} ملفات"),
+    ("Magnet link", "رابط magnet"),
+    ("The file list comes from the other computers when it starts", "قائمة الملفات تأتي من الأجهزة الأخرى عند البدء"),
+    ("This is not a magnet link or a .torrent file", "هذا ليس رابط magnet أو ملف تورنت"),
+    ("This .torrent file can't be read: {}", "تعذرت قراءة ملف تورنت هذا: {}"),
+    ("{} in {} files", "{} في {} ملفات"),
+    ("Check at least one file", "حدد ملفًا واحدًا على الأقل"),
+    ("Choose where to save it", "اختر مكان الحفظ"),
+    ("Show download progress", "عرض تقدّم التحميل"),
+    ("Stop download", "إيقاف التحميل"),
+    ("This torrent is already running (it may still be sharing its files). Wait a little, or exit REVO Download and open it again.", "هذا التورنت يعمل بالفعل (قد يكون ما زال يشارك ملفاته). انتظر قليلًا، أو اخرج من REVO Download وافتحه مرة أخرى."),
+    ("The browser add-in can be paused from its own window, without turning it off in the browser's extensions page.", "يمكن إيقاف إضافة المتصفح مؤقتًا من نافذتها نفسها، دون تعطيلها من صفحة الإضافات في المتصفح."),
+    ("REVO Download will restart now to show its windows in the direction of the new language. Downloads continue after it opens.\n\nRestart now?", "سيُعاد تشغيل REVO Download الآن لتظهر نوافذه باتجاه اللغة الجديدة. التحميلات تكمل بعد فتحه.\n\nإعادة التشغيل الآن؟"),
+    ("The drive of the download folder is locked by BitLocker. Unlock it in Windows, or choose another folder (right-click the download > Properties).", "القرص الذي فيه مجلد التحميل مقفول بواسطة BitLocker. افتح قفله من ويندوز، أو اختر مجلدًا آخر (زر الفأرة الأيمن على التحميل > الخصائص)."),
+    ("Restore REVO Download", "إظهار REVO Download"),
+    ("Add new download…", "إضافة تحميل جديد…"),
+    ("Resume all downloads", "استكمال كل التحميلات"),
+    ("Stop all downloads", "إيقاف كل التحميلات"),
+    ("Speed Limiter", "محدد السرعة"),
+    ("Scheduler…", "المجدول…"),
+    ("Options…", "الخيارات…"),
+    ("About", "حول البرنامج"),
+    ("Exit", "خروج"),
+    ("Arabic: every window now reads from right to left (the program restarts once when the direction changes).", "العربية: كل النوافذ أصبحت من اليمين إلى اليسار (يُعاد تشغيل البرنامج مرة واحدة عند تغيير الاتجاه)."),
+    ("The program has its own small FFmpeg inside: video and sound are joined, MP3 files are made and live streams are saved, with nothing extra to download.", "البرنامج فيه نسخة FFmpeg صغيرة خاصة به: دمج الفيديو والصوت، وعمل ملفات MP3، وحفظ البث المباشر، بدون تحميل أي شيء إضافي."),
+    ("Live streams are saved as MP4 files.", "البث المباشر يُحفظ كملف MP4."),
+    ("MP3 files keep the title of the audio file.", "ملفات MP3 تحتفظ بعنوان الملف الصوتي."),
+    ("Much less memory and processor work, also with many downloads at once.", "استهلاك أقل بكثير للذاكرة والمعالج، حتى مع تحميلات كثيرة في نفس الوقت."),
+    ("No more freezes when a file is deleted or moved during its download, and message windows no longer hide behind the main window.", "لا مزيد من التهنيج عند حذف ملف أو نقله أثناء تحميله، ونوافذ الرسائل لم تعد تختفي خلف النافذة الرئيسية."),
+    ("Downloads are taken from the browser before its own Save As window opens.", "التحميلات تُؤخذ من المتصفح قبل أن تظهر نافذة \"حفظ باسم\" الخاصة به."),
+    ("The browser button finds more videos, also streams in several qualities, and on more sites.", "زر المتصفح يجد فيديوهات أكثر، ومنها البث بجودات متعددة، وعلى مواقع أكثر."),
+    ("AV1 qualities are offered when a video has them.", "جودات AV1 تظهر عندما يكون الفيديو متاحًا بها."),
+    ("The window of a download gets smaller when its details are hidden.", "نافذة التحميل تصغر عند إخفاء التفاصيل."),
+    ("The video button in the browser has five looks to choose from (in the add-in's window).", "زر الفيديو في المتصفح له خمسة أشكال تختار منها (من نافذة الإضافة)."),
+    ("A clear message when the download folder is on a drive locked by BitLocker.", "رسالة واضحة عندما يكون مجلد التحميل على قرص مقفول بواسطة BitLocker."),
+    ("Fixed videos that could not be downloaded on some computers because of the Windows temporary folder.", "تم إصلاح فيديوهات كانت لا تُحمَّل على بعض الأجهزة بسبب مجلد الملفات المؤقتة في ويندوز."),
+    ("The Grabber also finds links written as plain text, and the menu next to the clock is in the program's language.", "الجامع يجد أيضًا الروابط المكتوبة كنص عادي، وقائمة الأيقونة بجوار الساعة أصبحت بلغة البرنامج."),
+    ("The speed limit stays smooth with many connections, and the clipboard also catches the file types you added.", "تحديد السرعة يبقى سلسًا مع الاتصالات الكثيرة، ومراقبة الحافظة تلتقط أيضًا أنواع الملفات التي أضفتها."),
+    ("Remove these {} downloads from the download list?", "إزالة هذه التحميلات ({}) من قائمة التحميل؟"),
+    ("Remove “{}” from the download list?", "إزالة “{}” من قائمة التحميل؟"),
+    ("A click on a file link in the browser goes straight to REVO Download: the browser's own Save As window no longer opens (Brave too).", "الضغط على رابط ملف في المتصفح يذهب مباشرة إلى REVO Download: نافذة \"حفظ باسم\" الخاصة بالمتصفح لم تعد تظهر (وفي Brave أيضًا)."),
+    ("Changing the folder or the name in \"Download File Info\" no longer gives a small broken file, and a name typed without its extension keeps it.", "تغيير المجلد أو الاسم في نافذة \"معلومات الملف\" لم يعد ينتج ملفًا صغيرًا تالفًا، والاسم المكتوب بدون امتداد يحتفظ بامتداده."),
+    ("Big files keep going by themselves when the server has trouble: REVO Download tries again later on its own.", "الملفات الكبيرة تكمل وحدها عندما يواجه السيرفر مشكلة: REVO Download يحاول مرة أخرى لاحقًا من نفسه."),
+    ("Torrents: a .torrent link in the browser opens the torrent window at once, .torrent files and magnet links open with REVO Download, and a .torrent file can be dropped on the window.", "التورنت: رابط ملف تورنت في المتصفح يفتح نافذة التورنت مباشرة، وملفات التورنت وروابط magnet تُفتح ببرنامج REVO Download، ويمكن سحب ملف تورنت وإفلاته على النافذة."),
+    ("Removing downloads can delete their files from the disk too (if you tick it), and the question can be turned off.", "إزالة التحميلات يمكنها حذف ملفاتها من القرص أيضًا (إذا اخترت ذلك)، ويمكن إيقاف ظهور السؤال."),
+    ("Ctrl+A, Ctrl+N and the other shortcuts work with the Arabic keyboard too, and files are selected with the mouse in both directions.", "اختصارات Ctrl+A وCtrl+N وغيرها تعمل مع لوحة المفاتيح العربية أيضًا، وتحديد الملفات بالماوس يعمل في الاتجاهين."),
+    ("The download window is smaller, never gets wider for a long name, and its title bar is like the main window's.", "نافذة التحميل أصبحت أصغر، ولا تتسع مع الاسم الطويل، وشريط عنوانها مثل النافذة الرئيسية."),
+    ("The video button in the browser hides in full screen (or not: the add-in's window), stays closed when you close it, and streams show their quality first.", "زر الفيديو في المتصفح يختفي في وضع ملء الشاشة (أو لا: من نافذة الإضافة)، ويبقى مغلقًا عند إغلاقه، والبث يُظهر جودته أولًا."),
+    ("Firefox: the add-in is signed again and updates by itself.", "فايرفوكس: الإضافة موقّعة من جديد وتتحدث وحدها."),
+    ("Playlists have 240p and 144p, the MP3 quality can be chosen, and the subtitles of videos can be downloaded too (Options > Downloads).", "قوائم التشغيل فيها جودة 240p و144p، ويمكن اختيار جودة MP3، وتحميل ترجمة الفيديوهات أيضًا (الخيارات > التحميلات)."),
+    ("The toolbar grows with bigger text, so the names are never cut.", "شريط الأدوات يكبر مع تكبير الخط، فلا تُقص أسماء الأزرار."),
+    ("The download window has the Windows title bar again, so every button answers the mouse where it is (Windows 10 and 11); its details stay hidden until you show them, and the windows keep the size you gave them.", "نافذة التحميل رجع لها شريط عنوان ويندوز، فكل زر يستجيب للماوس في مكانه (ويندوز 10 و11)؛ والتفاصيل مخفية حتى تُظهرها، والنوافذ تحتفظ بالمقاس الذي اخترته."),
+    ("The windows are drawn without the graphics card: much less memory, and the program no longer closes by itself at start on some computers (Options > General switches it back).", "النوافذ تُرسم بدون كارت الشاشة: استهلاك ذاكرة أقل بكثير، والبرنامج لم يعد يُغلق وحده عند الفتح على بعض الأجهزة (يمكن إرجاعه من الخيارات > عام)."),
+    ("A link that stops working (expired) is renewed by itself and checked first, then the download goes on from where it was.", "الرابط الذي يتوقف عن العمل (انتهت صلاحيته) يتجدد وحده ويُفحص أولًا، ثم يكمل التحميل من حيث توقف."),
+    ("The number of connections changes at once, even while a file downloads, and a connection much slower than the others is made again, so the speed stays steady.", "عدد الاتصالات يتغير فورًا حتى أثناء تحميل الملف، والاتصال الأبطأ بكثير من الباقي يُعاد فتحه، فتبقى السرعة ثابتة."),
+    ("The speed limiter goes on and off with a click in the status bar, and \"Move to queue\" opens in a list of its own.", "محدد السرعة يعمل ويتوقف بضغطة في شريط الحالة، و\"نقل إلى قائمة الانتظار\" تُفتح في قائمة خاصة بها."),
+    ("The link stopped working. A new one is fetched in {} s and checked before the download goes on.", "الرابط توقف عن العمل. سيتم جلب رابط جديد خلال {} ثانية وفحصه قبل أن يكمل التحميل."),
+    ("A file with this name is already in that folder, so nothing was moved. Choose another name.", "يوجد ملف بنفس الاسم في هذا المجلد، لذلك لم يتم النقل. اختر اسمًا آخر."),
+    ("ffmpeg.exe (it joins the video and the sound) is missing and could not be downloaded again. Allow it in your antivirus or install REVO Download again, then click Resume: nothing downloaded is lost.", "برنامج ffmpeg.exe (الذي يدمج الصورة والصوت) غير موجود ولم يمكن تحميله مرة أخرى. اسمح به في برنامج الحماية أو ثبّت REVO Download من جديد، ثم اضغط استئناف: لن يضيع شيء مما تم تحميله."),
+    ("Downloads never wait for ever any more: when a server stops answering, REVO Download asks again by itself, so a video or a file no longer stays at 0 KB/s or never starts, and Pause / Resume is not needed.", "التحميل لم يعد ينتظر إلى الأبد: عندما يتوقف السيرفر عن الرد يعيد REVO Download الطلب وحده، فلا يقف الفيديو أو الملف على 0 كيلوبايت ولا يبقى دون أن يبدأ، ولا حاجة للإيقاف ثم الاستئناف."),
+    ("When REVO Download is open but does not answer, opening it again offers to close it and start it fresh; an update shows its small window and never closes the program again and again.", "إذا كان REVO Download مفتوحًا لكنه لا يستجيب، فتحه مرة أخرى يعرض إغلاقه وتشغيله من جديد؛ والتحديث يُظهر نافذته الصغيرة ولا يُغلق البرنامج مرة بعد مرة."),
+    ("The video button: a small style (arrow and ✕) with a see-through slider, videos in the Facebook feed, and the qualities of streams on many more sites instead of an error.", "زر الفيديو: شكل صغير (سهم و✕) مع شريط للشفافية، وفيديوهات صفحة فيسبوك الرئيسية، وجودات البث في مواقع أكثر بكثير بدلًا من رسالة خطأ."),
+    ("The browser add-in reloads itself after an update, and Chrome / Edge get its files back when some went missing (\"files missing or unreadable\").", "إضافة المتصفح تعيد تحميل نفسها بعد التحديث، وكروم وإيدج تُعاد لهما ملفاتها إذا اختفى بعضها (\"الملفات ناقصة أو غير قابلة للقراءة\")."),
+    ("ffmpeg.exe (it joins the picture and the sound) is downloaded again by itself when an antivirus removed it.", "ملف ffmpeg.exe (الذي يدمج الصورة والصوت) يُحمَّل من جديد وحده إذا حذفه برنامج الحماية."),
+    ("Safer files: every part is checked before it is written, a moved file never replaces another one, and streams made of one big file or sent elsewhere download correctly.", "ملفات أكثر أمانًا: كل جزء يُفحص قبل أن يُكتب، ونقل الملف لا يستبدل ملفًا آخر أبدًا، والبث المكوّن من ملف واحد كبير أو المحوَّل لمكان آخر يُحمَّل بشكل صحيح."),
+    ("Opening a finished file or \"Open with\" never makes the program wait.", "فتح ملف مكتمل أو \"فتح باستخدام\" لا يجعل البرنامج ينتظر أبدًا."),
+    ("The server had trouble and can't resume this file, so it starts again from the beginning in {} s.", "واجه السيرفر مشكلة ولا يدعم استكمال هذا الملف، لذلك سيبدأ من البداية خلال {} ثانية."),
+    ("Looking for people who share this torrent…", "جارٍ البحث عن أشخاص يشاركون هذا التورنت…"),
+    ("Downloading from {} people ({} of them have the whole file)", "يتم التحميل من {} شخص ({} منهم لديهم الملف كاملًا)"),
+    ("Nobody shares this torrent right now. It keeps looking and starts by itself as soon as someone does. If it stays like this, the torrent has no sharers left, or your internet provider or firewall blocks torrents.", "لا أحد يشارك هذا التورنت الآن. سيواصل البحث ويبدأ وحده بمجرد أن يشاركه أحد. إذا استمر هكذا، فالتورنت لم يعد له من يشاركه، أو أن مزود الإنترنت أو الجدار الناري يحجب التورنت."),
+    ("The server refused REVO Download (it lets only the browser in). The link was opened in the browser, which hands it back with the site's sign-in; if the site still refuses, the browser downloads it itself.", "رفض السيرفر REVO Download (يسمح للمتصفح فقط). تم فتح الرابط في المتصفح ليعيده ومعه تسجيل الدخول في الموقع؛ وإذا استمر الموقع في الرفض فالمتصفح يحمّله بنفسه."),
+    ("Connect a browser?", "ربط متصفح؟"),
+    ("A browser add-in asks to connect to REVO Download (to send it the downloads and videos of the browser).\n\nSay yes only if you just installed or updated the REVO Download add-in in your browser.", "إضافة متصفح تطلب الاتصال بـ REVO Download (لترسل له تحميلات وفيديوهات المتصفح).\n\nوافق فقط إذا كنت قد ثبّت أو حدّثت إضافة REVO Download في متصفحك للتو."),
+    ("REVO Download needs to restart to use the new port (set the same port in the browser add-in too). Downloads continue after it opens.\n\nRestart now?", "يحتاج REVO Download لإعادة التشغيل لاستخدام المنفذ الجديد (اضبط نفس المنفذ في إضافة المتصفح أيضًا). التحميلات تكمل بعد أن يفتح.\n\nإعادة التشغيل الآن؟"),
+    ("REVO Download needs to restart to draw its windows the new way. Downloads continue after it opens.\n\nRestart now?", "يحتاج REVO Download لإعادة التشغيل ليرسم نوافذه بالطريقة الجديدة. التحميلات تكمل بعد أن يفتح.\n\nإعادة التشغيل الآن؟"),
+    ("No more black windows: a window that Windows had cleared (shown again from next to the clock, after the screen slept...) is drawn whole again.", "لا مزيد من النوافذ السوداء: النافذة التي مسحها ويندوز (عند إظهارها من بجوار الساعة، أو بعد سكون الشاشة...) تُرسم كاملة من جديد."),
+    ("Sites that let only the browser in (HTTP 403): REVO Download sends exactly what the browser sent, and if the site still refuses, the browser is asked for the file and hands it back with the site's sign-in.", "المواقع التي تسمح للمتصفح فقط (HTTP 403): يرسل REVO Download نفس ما أرسله المتصفح بالضبط، وإذا استمر الموقع في الرفض يُطلب الملف من المتصفح ليعيده ومعه تسجيل الدخول في الموقع."),
+    ("A PDF link goes straight to REVO Download: no second window asking where to save from the PDF viewer of Edge and Brave.", "رابط ملف PDF يذهب مباشرة إلى REVO Download: لا توجد نافذة ثانية تسأل أين تحفظ من عارض PDF في إيدج وبريف."),
+    ("Torrents find many more people to download from (public trackers), the window says how many are connected, and it tells you when nobody shares the torrent.", "التورنت يجد أشخاصًا أكثر بكثير للتحميل منهم (متتبعات عامة)، والنافذة تقول كم شخصًا متصلًا، وتخبرك عندما لا يشارك أحد التورنت."),
+    ("Direct links: the server is asked the way download managers usually ask, and a server that does not really resume gets one steady connection instead of failing again and again.", "الروابط المباشرة: يُسأل السيرفر بالطريقة المعتادة لبرامج التحميل، والسيرفر الذي لا يدعم الاستكمال فعلًا يحصل على اتصال واحد ثابت بدلًا من الفشل مرة بعد مرة."),
+    ("A file that changed on the server while it was paused starts again, instead of mixing the old and the new file; a server that can't resume and has trouble makes the download start again by itself.", "الملف الذي تغيّر على السيرفر أثناء الإيقاف يبدأ من جديد بدلًا من خلط الملف القديم بالجديد؛ والسيرفر الذي لا يدعم الاستكمال ويواجه مشكلة يجعل التحميل يبدأ من جديد وحده."),
+    ("The time left stays steady and still shows when the speed drops for a moment.", "الوقت المتبقي يبقى ثابتًا ويظل ظاهرًا عندما تنخفض السرعة للحظة."),
+    ("Settings that need a new start (the drawing, the port) ask to restart the program.", "الإعدادات التي تحتاج تشغيلًا جديدًا (طريقة الرسم، المنفذ) تطلب إعادة تشغيل البرنامج."),
+    ("Safer: only the REVO Download add-in can talk to the program (a secret key), and watching the clipboard is off until you turn it on.", "أمان أكثر: إضافة REVO Download فقط هي التي تستطيع التحدث مع البرنامج (مفتاح سري)، ومراقبة الحافظة متوقفة حتى تشغّلها بنفسك."),
+    ("The mouse pointer stays normal on the video button.", "مؤشر الماوس يبقى عاديًا على زر الفيديو."),
+    ("Windows open in the middle of the screen without a white box first.", "النوافذ تفتح في منتصف الشاشة مباشرة بدون مربع أبيض قبلها."),
+    ("This video is protected by its site (DRM): no download program can save it. It can only be watched on the site.", "هذا الفيديو محمي من صاحب الموقع (DRM): لا يمكن لأي برنامج تحميل أن يحفظه. يمكن مشاهدته من الموقع فقط."),
+    ("The add-in's files were put back. It starts again by itself within a minute (or click Reload on it in the browser's extensions page).", "تمت إعادة ملفات الإضافة. ستبدأ من جديد وحدها خلال دقيقة (أو اضغط \"إعادة التحميل\" عليها في صفحة الإضافات في المتصفح)."),
+    ("Some files of the add-in could not be written. Close the browser and click \"Repair the add-in\" again.", "تعذّرت كتابة بعض ملفات الإضافة. أغلق المتصفح واضغط \"إصلاح الإضافة\" مرة أخرى."),
+    ("Safer: the add-in talks to the program on a port chosen at random on this computer, every request is signed with a secret key (the key itself is never sent), and watching the clipboard is off until you turn it on.", "أمان أكثر: الإضافة تتحدث مع البرنامج على منفذ يُختار عشوائيًا على هذا الجهاز، وكل طلب موقّع بمفتاح سري (المفتاح نفسه لا يُرسل أبدًا)، ومراقبة الحافظة متوقفة حتى تشغّلها بنفسك."),
+    ("The browser add-in keeps working after an update: the setup puts it in again whole, it starts clean, and its window has \"Connect again\"; Options > Browsers has \"Repair the add-in\".", "إضافة المتصفح تظل تعمل بعد التحديث: برنامج الإعداد يضعها من جديد كاملة، وتبدأ على نظافة، ونافذتها فيها \"Connect again\"؛ وفي نافذة المتصفحات زر \"إصلاح الإضافة\"."),
+    ("The video button stays where it is when its list opens (the list opens under it, or above it when there is no room), and a protected video (DRM) says so plainly with a lock.", "زر الفيديو يبقى في مكانه عند فتح قائمته (القائمة تُفتح تحته، أو فوقه إذا لم يكن هناك مكان)، والفيديو المحمي (DRM) يقول ذلك بوضوح مع قفل."),
+    ("The new link gives another file, so nothing more was written. Right-click the download and use \"Refresh download address\".", "الرابط الجديد يعطي ملفًا مختلفًا، لذلك لم يُكتب أي شيء إضافي. اضغط بزر الفأرة الأيمن على التحميل واختر \"تحديث عنوان التحميل\"."),
+    ("The start is after the end of the video.", "البداية بعد نهاية الفيديو."),
+    ("The end must come after the start.", "يجب أن تأتي النهاية بعد البداية."),
+    ("The part must be at least half a second long.", "يجب ألا تقل مدة الجزء عن نصف ثانية."),
+    ("Paste the address of the video (https://…).", "الصق عنوان الفيديو (https://…)."),
+    ("Looking at the video… (a few seconds)", "جارٍ فحص الفيديو… (بضع ثوانٍ)"),
+    ("No video was found at this address.", "لم يُعثر على فيديو في هذا العنوان."),
+    ("Length of the video: {}", "مدة الفيديو: {}"),
+    ("The length of this video is not known: type the times.", "مدة هذا الفيديو غير معروفة: اكتب الأوقات بنفسك."),
+    ("Could not get the video: {}", "تعذّر جلب الفيديو: {}"),
+    ("No program on this computer plays this kind of file.", "لا يوجد برنامج على هذا الجهاز يشغّل هذا النوع من الملفات."),
+    ("Could not prepare the preview: {}", "تعذّر تجهيز المعاينة: {}"),
+    ("The part {} was added to the list.", "أُضيف الجزء {} إلى القائمة."),
+    ("The part could not be cut. Try the quick cut, or another quality.", "تعذّر قص الجزء. جرّب القص السريع، أو جودة أخرى."),
+    ("The part you chose is after the end of the video.", "الجزء الذي اخترته بعد نهاية الفيديو."),
+    ("Drag the finished file out: in the \"Download complete\" window, pull the file's icon (\"Drag me\") onto the desktop, a folder, a chat or any program, and a copy of the file goes there.", "اسحب الملف بعد انتهاء تحميله: في نافذة \"اكتمل التحميل\" اسحب أيقونة الملف (\"اسحبني\") إلى سطح المكتب أو أي مجلد أو محادثة أو أي برنامج، فتوضع هناك نسخة من الملف."),
+    ("Sites behind Cloudflare protection that refused REVO Download (HTTP 403) while the browser and other download programs got the file (samfw.com and many more): REVO Download now asks for files the way they do.", "المواقع المحمية بـ Cloudflare التي كانت ترفض REVO Download (HTTP 403) بينما يحمّل منها المتصفح وبرامج التحميل الأخرى (مثل samfw.com ومواقع كثيرة غيره): يطلب REVO Download الملفات الآن بنفس طريقتها."),
+    ("The Firefox add-on stays up to date: when the add-on in Firefox is older than the program, REVO Download says so and opens the new one (click \"Add\" in Firefox).", "إضافة فايرفوكس تبقى محدّثة: عندما تكون الإضافة في فايرفوكس أقدم من البرنامج، يخبرك REVO Download بذلك ويفتح الإضافة الجديدة (اضغط \"إضافة\" في فايرفوكس)."),
+    ("Download File Info shows the whole size of a video whose picture and sound come apart (the same size as in the add-in), with the size of each.", "نافذة معلومات التحميل تعرض الحجم الكامل للفيديو الذي تأتي صورته وصوته منفصلين (نفس الحجم الذي تعرضه الإضافة)، مع حجم كل منهما."),
+    ("The add-in downloads whole videos; \"Download a part of a video\" is in the program for now (Tasks > Download a part of a video).", "الإضافة تحمّل الفيديوهات كاملة؛ و\"تحميل جزء من فيديو\" موجود في البرنامج حاليًا (المهام > تحميل جزء من فيديو)."),
+    ("Messages of the add-in in Arabic read right to left, and the setup never puts an older Firefox add-on back.", "رسائل الإضافة بالعربية تُقرأ من اليمين إلى اليسار، وبرنامج الإعداد لا يعيد أبدًا إضافة فايرفوكس أقدم."),
+    ("Update the Firefox add-on", "تحديث إضافة فايرفوكس"),
+    ("The REVO Download add-on in Firefox is an older version than the program, so videos and downloads may not work in Firefox.\n\nClick OK: Firefox opens the new add-on. Then click \"Add\" in the message Firefox shows.", "إضافة REVO Download في فايرفوكس أقدم من البرنامج، لذلك قد لا تعمل الفيديوهات والتحميلات في فايرفوكس.\n\nاضغط موافق: سيفتح فايرفوكس الإضافة الجديدة. ثم اضغط \"إضافة\" في الرسالة التي يعرضها فايرفوكس."),
+    ("picture {}", "الصورة {}"),
+    ("sound {}", "الصوت {}"),
+    ("Download a part of a video: choose from / to (or \"Now\" while it plays), look at the part first, and only that part is downloaded, with a quick cut or an exact cut. In the add-in's list of qualities, and in Tasks > Download a part of a video.", "تحميل جزء من فيديو: اختر من / إلى (أو \"Now\" أثناء التشغيل)، وشاهد الجزء أولًا، ويُحمَّل هذا الجزء فقط، بقص سريع أو قص دقيق. في قائمة الجودات في الإضافة، وفي المهام > تحميل جزء من فيديو."),
+    ("Joining the picture and the sound", "دمج الصورة والصوت"),
+    ("Making the MP4 file", "إنشاء ملف MP4"),
+    ("Making the MP3 file", "إنشاء ملف MP3"),
+    ("Moving the file to its folder", "نقل الملف إلى مجلده"),
+    ("Cutting the part", "قص الجزء"),
+    ("{}…", "{}…"),
+    ("Not enough free space on the disk {}: the file needs {} more, only {} is free. Choose a folder on another disk (right-click the download > Move / Rename), or free some space, then click Resume.", "لا توجد مساحة كافية على القرص {}: الملف يحتاج {} أخرى، والمتاح {} فقط. اختر مجلدًا على قرص آخر (زر الفأرة الأيمن على التحميل > نقل / إعادة تسمية)، أو وفّر بعض المساحة، ثم اضغط استئناف."),
+    ("The downloaded data is gone: its temporary file was removed while it downloaded (an antivirus or a cleaning program?). Click Redownload; if it happens again, allow the download folder in the antivirus.", "البيانات التي تم تحميلها اختفت: حُذف ملفها المؤقت أثناء التحميل (برنامج حماية أو برنامج تنظيف؟). اضغط \"إعادة التحميل\"؛ وإذا تكرر ذلك، استثنِ مجلد التحميل في برنامج الحماية."),
+    ("Big files: a second bar shows the joining of picture and sound and the moving of the file to its folder, big videos are joined in about half the time, a folder chosen in Download File Info takes the file there at once (the free space of that disk counts), and removing a download never takes another download's file away.", "الملفات الكبيرة: شريط ثانٍ يُظهر دمج الصورة والصوت ونقل الملف إلى مجلده، والفيديوهات الكبيرة تُدمج في نصف الوقت تقريبًا، والمجلد الذي تختاره في نافذة معلومات التحميل يأخذ الملف إليه فورًا (وتُحسب مساحة ذلك القرص)، وحذف تحميل لا يأخذ أبدًا ملف تحميل آخر."),
+    ("Sites that allow only a few connections at a time (\"too many requests\", HTTP 429): the download goes on by itself with fewer connections, and that site's next downloads start with that many.", "المواقع التي تسمح باتصالات قليلة في نفس الوقت (\"طلبات كثيرة جدًا\"، HTTP 429): يكمل التحميل وحده باتصالات أقل، وتبدأ التحميلات التالية من نفس الموقع بهذا العدد."),
+    ("This video is in AV1 (the same picture in a much smaller file). If your player plays only its sound, without the picture, get Microsoft's free \"AV1 Video Extension\" (or play it with VLC).\n\nOpen it in the Microsoft Store now?", "هذا الفيديو بصيغة AV1 (نفس الصورة في ملف أصغر بكثير). إذا شغّل المشغّل الصوت فقط بدون صورة، ثبّت إضافة \"AV1 Video Extension\" المجانية من مايكروسوفت (أو شغّله ببرنامج VLC).\n\nهل تريد فتحها في متجر مايكروسوفت الآن؟"),
+    ("Getting the list of files from the people who share it… (up to a minute and a half)", "جارٍ جلب قائمة الملفات من الأشخاص الذين يشاركونه… (حتى دقيقة ونصف)"),
+    ("The file list did not come yet: all files will be downloaded (they show once it starts).", "لم تصل قائمة الملفات بعد: سيتم تحميل كل الملفات (تظهر بعد بدء التحميل)."),
+    ("Torrents: a magnet link shows its files first so you can choose them, and torrents find more people to download from. Links that work only in the browser (ChatGPT files, iLovePDF and other links that work once or need the page's sign-in) stay in the browser instead of failing.", "التورنت: رابط المغناطيس يعرض ملفاته أولًا لتختار منها، والتورنت يجد أشخاصًا أكثر للتحميل منهم. الروابط التي تعمل في المتصفح فقط (ملفات ChatGPT وiLovePDF وغيرها من الروابط التي تعمل مرة واحدة أو تحتاج تسجيل دخول الصفحة) تبقى في المتصفح بدل أن تفشل."),
+    ("Facebook and Instagram: videos of closed groups and friends-only posts are found with the browser's sign-in, an AV1 video (sound without picture in older players) says so, and sites that drop extra connections get fewer by themselves.", "فيسبوك وإنستجرام: فيديوهات الجروبات المغلقة ومنشورات الأصدقاء فقط تُجلب بتسجيل دخول المتصفح، وفيديو AV1 (صوت بدون صورة في المشغّلات القديمة) ينبّهك لذلك، والمواقع التي تقطع الاتصالات الزائدة تحصل على اتصالات أقل تلقائيًا."),
+    ("The site asks to confirm you are not a robot. Open the link in the browser, confirm there, then click Resume.", "الموقع يطلب التأكد من أنك لست روبوتًا. افتح الرابط في المتصفح وأكّد هناك، ثم اضغط استكمال."),
+    ("Connected to people who send nothing yet (they don't have the missing pieces, or they are busy). REVO Download keeps looking for others who have the file.", "متصل بأجهزة لا ترسل شيئًا حتى الآن (ليس لديها الأجزاء الناقصة، أو أنها مشغولة). REVO Download يواصل البحث عن آخرين لديهم الملف."),
+    ("Getting the signed Firefox add-on from the official page…", "جارٍ جلب إضافة Firefox الموقّعة من الصفحة الرسمية…"),
+    ("The Firefox add-on could not be fetched ({}). Check the internet and click Firefox again.", "تعذر جلب إضافة Firefox ‏({}). تأكد من الإنترنت واضغط Firefox مرة أخرى."),
+    ("Check file (SHA-256)", "فحص الملف (SHA-256)"),
+    ("Copy address", "نسخ الرابط"),
+    ("Delete from queue", "حذف من قائمة الانتظار"),
+    ("Download a part of it…", "تحميل جزء منه…"),
+    ("Move / Rename…", "نقل / إعادة تسمية…"),
+    ("Move to queue", "نقل إلى قائمة الانتظار"),
+    ("Open folder", "فتح المجلد"),
+    ("Open with…", "فتح باستخدام…"),
+    ("Open", "فتح"),
+    ("Play while downloading", "تشغيل أثناء التحميل"),
+    ("Properties", "الخصائص"),
+    ("Redownload", "إعادة التحميل"),
+    ("Refresh download address…", "تحديث رابط التحميل…"),
+    ("Remove", "حذف"),
+    ("Resume download", "استئناف التحميل"),
+    ("{} downloads selected", "تم تحديد {} تحميلات"),
+    ("Four new 3D looks (View): 3D, Aurora glass, Soft clay and Cyber neon, with raised buttons, colored pictures, downloads on floating cards and a new download window with a progress ring and the speed.", "أربعة أشكال جديدة ثلاثية الأبعاد (عرض): ثلاثي الأبعاد 3D، وزجاج الشفق، وصلصال ناعم، ونيون سايبر، بأزرار بارزة وصور ملونة وتحميلات على بطاقات طافية ونافذة تحميل جديدة فيها دائرة تقدم ورسم للسرعة."),
+    ("The setup asks for the language of the program at the first install, and can let torrents through the Windows firewall.", "برنامج التثبيت يسأل عن لغة البرنامج عند أول تثبيت، ويمكنه السماح للتورنت بالمرور من جدار حماية Windows."),
+    ("Options > Torrents: make REVO Download the main program for torrents, or leave magnet links and .torrent files to your own torrent program.", "الخيارات > التورنت: اجعل REVO Download البرنامج الرئيسي للتورنت، أو اترك روابط magnet وملفات ‎.torrent لبرنامج التورنت الخاص بك."),
+    ("A torrent that is connected but gets nothing looks for other people by itself, and says why it waits.", "التورنت المتصل الذي لا يصله شيء يبحث عن أجهزة أخرى وحده، ويوضح سبب الانتظار."),
+    ("Playlists: names in the program's language, right-to-left names shown from the right, a few videos at a time, and a video that fails is tried again by itself.", "قوائم التشغيل: الأسماء بلغة البرنامج، والأسماء العربية تظهر من اليمين، وبضعة فيديوهات في المرة الواحدة، والفيديو الذي يفشل يُعاد تحميله وحده."),
+    ("The add-in has one tab for the whole video and one for a part of it, and it never downloads the video that played before in the same player.", "إضافة المتصفح فيها تبويب للفيديو كامل وتبويب لجزء منه، ولا تحمّل أبدًا الفيديو الذي كان يعمل قبله في نفس المشغل."),
+    ("The right-click menu of the list is a real Windows menu that is never cut off, in the look of the program.", "قائمة الزر الأيمن في القائمة أصبحت قائمة Windows حقيقية لا تُقطع أبدًا، بنفس شكل البرنامج."),
+    ("Sites that refuse extra connections: the download goes on with fewer. Up to 64 connections. A site that asks for a robot check says so, and the Firefox add-on is fetched from the official page when it is missing.", "المواقع التي ترفض الاتصالات الإضافية: التحميل يكمل باتصالات أقل. حتى 64 اتصالًا. الموقع الذي يطلب التأكد من أنك لست روبوتًا يوضح ذلك، وإضافة Firefox تُجلب من الصفحة الرسمية عندما تكون غير موجودة."),
+    ("Link between the browsers and REVO Download:", "الربط بين المتصفحات و REVO Download:"),
+    ("The program answers the add-in", "البرنامج يرد على الإضافة"),
+    ("Its usual port is kept by another program or by Windows: the add-in uses the program's own port (nothing to do).", "المنفذ المعتاد يستخدمه برنامج آخر أو ويندوز: الإضافة تستخدم المنفذ الخاص بالبرنامج (لا داعي لعمل شيء)."),
+    ("The browsers' helper is in place", "مساعد المتصفحات موجود"),
+    ("{} knows the helper", "{} يعرف المساعد"),
+    ("An add-in talked to the program in the last 15 minutes", "تواصلت إضافة مع البرنامج خلال آخر 15 دقيقة"),
+    ("...through the browsers' helper", "...عن طريق مساعد المتصفحات"),
+    ("No add-in talked lately: open the browser, make sure the REVO Download add-in is on (Extensions page), then click a download link and test again.", "لم تتواصل أي إضافة مؤخرًا: افتح المتصفح وتأكد أن إضافة REVO Download مفعّلة (صفحة الإضافات)، ثم اضغط على رابط تحميل واختبر مرة أخرى."),
+    ("The add-in talks through the port only. In Firefox: the add-in's window > \"Connect directly\". In other browsers: reload the add-in once (Extensions page).", "الإضافة تتواصل عن طريق المنفذ فقط. في فايرفوكس: نافذة الإضافة > \"Connect directly\". في المتصفحات الأخرى: أعد تحميل الإضافة مرة واحدة (صفحة الإضافات)."),
+    ("Everything works.", "كل شيء يعمل."),
+    ("Please enter a valid http://, https:// or ftp:// address", "من فضلك أدخل رابطًا صحيحًا يبدأ بـ http:// أو https:// أو ftp://"),
+    ("This is not a checksum: paste its MD5, SHA-1, SHA-256, SHA-384 or SHA-512 value", "هذا ليس رمز تحقق: الصق قيمة MD5 أو SHA-1 أو SHA-256 أو SHA-384 أو SHA-512"),
+    ("The torrent goes on with the files checked.", "التورنت يكمل بالملفات المحددة."),
+    ("Tracker added.", "تمت إضافة المتتبع."),
+    ("This is not a tracker address (udp://, http:// or https://).", "هذا ليس عنوان متتبع (udp:// أو http:// أو https://)."),
+    ("Every piece on the disk is checked again, then it goes on.", "يُعاد فحص كل جزء على القرص، ثم يكمل."),
+    ("The magnet link was copied.", "تم نسخ رابط magnet."),
+    ("The magnet link could not be made.", "تعذر إنشاء رابط magnet."),
+    ("Sent to others: {} (ratio {})", "تم الإرسال للآخرين: {} (النسبة {})"),
+    ("Checking the file", "جارٍ فحص الملف"),
+    ("The downloaded file is damaged: its checksum is not the one it should have. Click Redownload.", "الملف الذي تم تحميله تالف: رمز التحقق الخاص به ليس هو المطلوب. اضغط إعادة التحميل."),
+    ("The file on the server changed since the download began, so its parts would not fit together. Click Redownload.", "الملف على الخادم تغيّر منذ بدء التحميل، فأجزاؤه لن تتطابق معًا. اضغط إعادة التحميل."),
+    ("The link opens one web page after another, not a file. Open it in the browser and download it from there.", "الرابط يفتح صفحة ويب بعد أخرى وليس ملفًا. افتحه في المتصفح وحمّله من هناك."),
+    ("This torrent has file names that lead out of its folder, so it was stopped to keep your other files safe.", "هذا التورنت فيه أسماء ملفات تخرج خارج مجلده، لذلك تم إيقافه لحماية ملفاتك الأخرى."),
+    ("Keyboard shortcuts\n\nCtrl+N or Ctrl+V: add a download (a copied address)\nCtrl+B: add several addresses\nEnter: open the download (its window, or the file)\nAlt+Enter: properties\nF2: rename / move the file\nCtrl+R: resume\nCtrl+S: stop\nCtrl+O: open the file\nCtrl+E: open its folder\nCtrl+C: copy the address\nDelete: delete\nUp / Down, Home / End: move in the list (with Shift: select)\nCtrl+A: select all\nCtrl+F, F3: find, find the next", "اختصارات لوحة المفاتيح\n\nCtrl+N أو Ctrl+V: إضافة تحميل (رابط منسوخ)\nCtrl+B: إضافة عدة روابط\nEnter: فتح التحميل (نافذته أو الملف)\nAlt+Enter: الخصائص\nF2: إعادة تسمية / نقل الملف\nCtrl+R: استئناف\nCtrl+S: إيقاف\nCtrl+O: فتح الملف\nCtrl+E: فتح مجلده\nCtrl+C: نسخ الرابط\nDelete: حذف\nأعلى / أسفل، Home / End: التنقل في القائمة (مع Shift: تحديد)\nCtrl+A: تحديد الكل\nCtrl+F و F3: بحث، البحث عن التالي"),
+    ("FTP and FTPS links download like web links: in parts, with resume, and with the user name and password kept apart from the address.", "روابط FTP و FTPS تُحمَّل مثل روابط الويب: على أجزاء، مع الاستكمال، واسم المستخدم وكلمة المرور محفوظان بعيدًا عن الرابط."),
+    ("Checksum: paste an MD5, SHA-1 or SHA-256 value in Download File Info (or the site gives one) and the file is checked when it finishes.", "رمز التحقق: الصق قيمة MD5 أو SHA-1 أو SHA-256 في معلومات ملف التحميل (أو يعطيها الموقع) ويُفحص الملف عند انتهائه."),
+    ("Torrents have their own tab in Properties: the files (choose them while it runs), the people, the trackers and the pieces. Add a tracker, check the files again, copy the magnet link, first and last pieces first, and stop sharing at a ratio you choose.", "للتورنت تبويب خاص في الخصائص: الملفات (اخترها أثناء التحميل)، والأجهزة المتصلة، والمتتبعات، والأجزاء. أضف متتبعًا، وأعد فحص الملفات، وانسخ رابط magnet، وحمّل الجزء الأول والأخير أولًا، وأوقف المشاركة عند النسبة التي تختارها."),
+    ("Safer resume: a file that changed on the server is noticed instead of being joined with the old parts, links that lead through a few pages to the file are followed, and downloads that need a form sent from the browser work.", "استكمال أكثر أمانًا: الملف الذي تغيّر على الخادم يُكتشف بدل أن يُدمج مع الأجزاء القديمة، والروابط التي تمر بعدة صفحات قبل الملف تُتابع، والتحميلات التي تحتاج إرسال نموذج من المتصفح تعمل."),
+    ("The speed limit can work only while you use the computer, and a scheduled queue can wake the computer from sleep to start.", "حد السرعة يمكن أن يعمل فقط أثناء استخدامك للكمبيوتر، وقائمة الانتظار المجدولة يمكنها إيقاظ الكمبيوتر من وضع السكون لتبدأ."),
+    ("Keyboard shortcuts for the list (F1 shows them), a command line for other programs and scripts, and Help > Add REVO Download to my browser > Test the link checks the add-in step by step.", "اختصارات لوحة المفاتيح للقائمة (F1 يعرضها)، وسطر أوامر للبرامج والسكربتات الأخرى، ومساعدة > إضافة REVO Download إلى متصفحي > اختبار الربط يفحص الإضافة خطوة بخطوة."),
+    ("The add-in works in private windows too (allow it there in the browser), keeps the browser's own download when the program is closed, and its video button can be moved or hidden on a site.", "الإضافة تعمل في النوافذ الخاصة أيضًا (اسمح لها بذلك من المتصفح)، وتترك التحميل للمتصفح نفسه إذا كان البرنامج مغلقًا، وزر الفيديو يمكن نقله أو إخفاؤه في أي موقع."),
+    ("Torrents are shared by the program itself now, with no helper program: they start sooner, use less of the computer, and a stopped torrent goes on after a restart without checking all its pieces again.", "التورنت أصبح يعمل من داخل البرنامج نفسه دون برنامج مساعد: يبدأ أسرع، ويستهلك موارد أقل من الكمبيوتر، والتورنت المتوقف يكمل بعد إعادة التشغيل دون إعادة فحص كل أجزائه."),
+    ("Asking the server about the links: {} left", "جارٍ سؤال الخادم عن الروابط: متبقٍ {}"),
+    ("{} files", "{} ملف"),
+    ("{} finished, {} could not be downloaded", "انتهى {}، وتعذر تحميل {}"),
+    ("All {} finished", "انتهت كلها ({})"),
+    ("Waiting for \"{}\" to be finished first (its parts are being put together).", "في انتظار انتهاء \"{}\" أولًا (يتم تجميع أجزائه الآن)."),
+    ("The Site Grabber finds the files behind download links that show no file name and asks the server for their real names and sizes, a playlist shows one \"Download complete\" window at the end instead of one for every file, and the computer is never shut down or put to sleep while a file is still being put together.", "أداة جمع الملفات تجد الملفات خلف روابط التحميل التي لا يظهر فيها اسم ملف، وتسأل الخادم عن أسمائها وأحجامها الحقيقية، وقائمة التشغيل تُظهر نافذة \"اكتمل التحميل\" واحدة في النهاية بدل نافذة لكل ملف، والكمبيوتر لا يُغلق ولا يدخل السكون أبدًا وملف ما زال يتم تجميعه."),
+];
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn fills_places() {
+        assert_eq!(tf("Tip {} of {}", &[&1, &14]), "Tip 1 of 14");
+        CURRENT.store(index_of("ar"), Ordering::Relaxed);
+        assert_eq!(tf("Tip {} of {}", &[&1, &14]), "نصيحة 1 من 14");
+        assert_eq!(t("not in the list"), "not in the list");
+        CURRENT.store(index_of("fr"), Ordering::Relaxed);
+        assert_eq!(tf("Tip {} of {}", &[&1, &14]), "Astuce 1 sur 14");
+        CURRENT.store(0, Ordering::Relaxed);
+    }
+
+    #[test]
+    fn every_language_has_every_text() {
+        // the tables are read from JSON: a broken file would silently fall back to English
+        for (code, _) in LANGS.iter().skip(2) {
+            let m = table(code).expect("table");
+            assert!(m.len() > 150, "{code}: only {} texts", m.len());
+            for (en, tr) in m {
+                assert_eq!(en.matches("{}").count(), tr.matches("{}").count(), "{code}: {en}");
+            }
+        }
+        assert_eq!(index_of("xx"), 0);
+        assert_eq!(effective("es"), "es");
+    }
+
+    #[test]
+    fn whats_new_and_shortcuts_in_every_language() {
+        let texts: Vec<&str> = crate::extra::WHATS_NEW.iter().copied().chain([crate::SHORTCUTS, "Checking the file"]).collect();
+        for en in texts {
+            assert!(lookup(en).is_some(), "ar: {en}");
+            for (code, _) in LANGS.iter().skip(2) {
+                assert!(table(code).expect("table").contains_key(en), "{code}: {en}");
+            }
+        }
+    }
+}
+
+/// A name written right to left (Arabic, Hebrew, Persian…): its first
+/// letter decides, as in a text editor.
+pub fn rtl_text(s: &str) -> bool {
+    for c in s.chars() {
+        let u = c as u32;
+        if matches!(u, 0x0590..=0x08FF | 0xFB1D..=0xFDFF | 0xFE70..=0xFEFF | 0x10800..=0x10FFF | 0x1E800..=0x1EFFF) {
+            return true;
+        }
+        if c.is_alphabetic() {
+            return false;
+        }
+    }
+    false
+}
+
+/// The name as it is shown in a list: a right-to-left one starts with the
+/// invisible right-to-left mark, so numbers and Latin words in it keep
+/// their place.
+pub fn shown_name(s: &str) -> String {
+    if rtl_text(s) {
+        format!("\u{200F}{s}")
+    } else {
+        s.to_string()
+    }
+}
+
+#[cfg(test)]
+mod rtl_tests {
+    #[test]
+    fn first_letter_decides() {
+        assert!(super::rtl_text("07 - طريقة عمل الأرز"));
+        assert!(super::rtl_text("שלום world"));
+        assert!(!super::rtl_text("How to — طريقة"));
+        assert!(!super::rtl_text("123"));
+        assert_eq!(super::shown_name("abc"), "abc");
+        assert_eq!(super::shown_name("أ"), "\u{200F}أ");
+    }
+}
