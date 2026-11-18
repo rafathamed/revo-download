@@ -2230,7 +2230,13 @@ impl Manager {
                     .collect();
                 // it shares for the time (or the ratio) of Options, then it
                 // is forgotten (no sharing wanted: forgotten now)
-                self.torrents.share_then_forget(&gid, settings.torrent_seed_minutes, settings.torrent_seed_ratio, leftovers);
+                if settings.torrent_seed_minutes == 0 && settings.torrent_seed_ratio <= 0.0 {
+                    // When sharing is disabled, release the torrent and delete
+                    // unwanted piece-sharing files before marking it complete.
+                    self.torrents.forget_and_clean(&gid, leftovers).await;
+                } else {
+                    self.torrents.share_then_forget(&gid, settings.torrent_seed_minutes, settings.torrent_seed_ratio, leftovers);
+                }
                 return Ok(());
             }
         }
