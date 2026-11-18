@@ -47,5 +47,15 @@
     replayed.add(copy);
     if (!inner.dispatchEvent(copy)) e.preventDefault();
   };
+  // Bridge page-world media observations from document_start. This runs
+  // before content.js (document_idle), so early player requests are not lost.
+  addEventListener("message", (event) => {
+    if (event.source !== window || !event.data || event.data.__revoMediaHook !== 1) return;
+    const d = event.data;
+    if (typeof d.url !== "string" || !/^https?:\/\//i.test(d.url) || d.url.length > 8192) return;
+    if (!/\.m3u8(?:[?#]|$)|\.mpd(?:[?#]|$)|\.(?:mp4|m4v|webm|mov|mkv|ogv|avi|mp3|m4a|aac|wav|flac|ogg)(?:[?#]|$)/i.test(d.url) &&
+        !/mpegurl|dash\+xml/i.test(String(d.mime || ""))) return;
+    try { chrome.runtime.sendMessage({ type: "revo-network-media", url: d.url, mime: d.mime || "" }); } catch {}
+  }, false);
   for (const t of KEEP) addEventListener(t, route, true);
 })();
