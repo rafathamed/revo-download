@@ -34,6 +34,8 @@ jobs:
           $copyCode = $LASTEXITCODE
           if ($copyCode -ge 8) { throw "Robocopy failed with exit code $copyCode" }
           Write-Host "Robocopy completed successfully (exit code $copyCode)."
+          # Robocopy uses 1-7 for successful copy outcomes; clear its native exit code.
+          $global:LASTEXITCODE = 0
 
       - name: Commit extracted source tree
         shell: pwsh
@@ -42,16 +44,24 @@ jobs:
         run: |
           $PSNativeCommandUseErrorActionPreference = $false
           git config user.name "github-actions[bot]"
+          if ($LASTEXITCODE -ne 0) { throw "Could not configure git user name." }
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if ($LASTEXITCODE -ne 0) { throw "Could not configure git user email." }
           git add -A
+          if ($LASTEXITCODE -ne 0) { throw "git add failed." }
           git diff --cached --quiet
           $diffCode = $LASTEXITCODE
+          $global:LASTEXITCODE = 0
           if ($diffCode -gt 1) { throw "git diff failed with exit code $diffCode" }
           if ($diffCode -eq 1) {
             git commit -m "Add extracted REVO Download v1.0.11 source"
-            if ($LASTEXITCODE -ne 0) { throw "Could not commit extracted source." }
+            $commitCode = $LASTEXITCODE
+            $global:LASTEXITCODE = 0
+            if ($commitCode -ne 0) { throw "Could not commit extracted source (exit code $commitCode)." }
             git push origin HEAD:main
-            if ($LASTEXITCODE -ne 0) { throw "Could not push extracted source to main." }
+            $pushCode = $LASTEXITCODE
+            $global:LASTEXITCODE = 0
+            if ($pushCode -ne 0) { throw "Could not push extracted source to main (exit code $pushCode)." }
           } else {
             Write-Host "The extracted source is already present."
           }
@@ -63,10 +73,15 @@ jobs:
         run: |
           $PSNativeCommandUseErrorActionPreference = $false
           gh auth status
+          $authCode = $LASTEXITCODE
+          $global:LASTEXITCODE = 0
+          if ($authCode -ne 0) { throw "GitHub CLI authentication failed." }
           $started = $false
           for ($i = 1; $i -le 6; $i++) {
             gh workflow run build.yml --ref main --repo $env:GITHUB_REPOSITORY
-            if ($LASTEXITCODE -eq 0) { $started = $true; break }
+            $runCode = $LASTEXITCODE
+            $global:LASTEXITCODE = 0
+            if ($runCode -eq 0) { $started = $true; break }
             Write-Host "Build workflow is not ready yet; retry $i of 6."
             Start-Sleep -Seconds 10
           }
