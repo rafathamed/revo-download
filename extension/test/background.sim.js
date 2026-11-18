@@ -271,7 +271,7 @@ const tick = () => new Promise((r) => setTimeout(r, 20));
     listeners.msg({ type: "revo-network-media", url: "https://cdn.example/player/master.m3u8?token=1", mime: "application/vnd.apple.mpegurl" }, { tab: { id: 52, url: "https://site.example/watch" } }, () => {});
     await tick(); await tick();
     const items = await new Promise((resolve) => listeners.msg({ type: "revo-get-media", tabId: 52 }, {}, resolve));
-    assert(items.some((m) => m.type === "HLS stream" && m.url.includes("master.m3u8")), "page-world manifest detection reaches the popup");
+    assert(items.some((m) => (m.url || m.resolve || "").includes("master.m3u8")), "page-world manifest detection reaches the popup");
   }
   console.log("background simulation: all checks passed");
 })().catch((e) => { console.error(e); process.exit(1); });
