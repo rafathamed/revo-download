@@ -41,18 +41,21 @@ pub fn disk_paths(metadata: &TorrentMetadata) -> Vec<Option<PathBuf>> {
     let many = info.files.is_some();
     let top = metadata.info.name().map(|n| safe_part(&n)).unwrap_or_else(|| "torrent".into());
     metadata
-        .file_infos
-        .iter()
-        .map(|f| {
-            if f.attrs.padding {
+        .info
+        .iter_file_details()
+        .map(|fd| {
+            if fd.attrs().padding {
                 return None;
             }
             let mut p = PathBuf::new();
             if many {
                 p.push(&top);
             }
-            for part in f.relative_filename.iter() {
-                p.push(safe_part(&part.to_string_lossy()));
+            // Iterate raw torrent path components rather than `Path::iter()`,
+            // so Windows does not split strings like `"a:b?.bin"` at the colon
+            // as a drive prefix (`a:` + `b?.bin`).
+            for part in fd.filename.iter_components() {
+                p.push(safe_part(&part));
             }
             Some(p)
         })

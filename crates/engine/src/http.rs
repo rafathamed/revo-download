@@ -1035,10 +1035,22 @@ mod refused_tests {
     #[tokio::test]
     async fn a_link_for_the_ipv4_address_is_asked_over_ipv4() {
         use tokio::io::{AsyncReadExt, AsyncWriteExt};
-        let Ok(listener) = tokio::net::TcpListener::bind("[::]:0").await else { return };
+        let Ok(sock) = socket2::Socket::new(socket2::Domain::IPV6, socket2::Type::STREAM, Some(socket2::Protocol::TCP)) else { return };
+        // Windows defaults IPv6 sockets to IPV6_V6ONLY=1; enable dual-stack so
+        // the test server accepts both ::1 (403) and 127.0.0.1 (206).
+        let _ = sock.set_only_v6(false);
+        if sock.set_nonblocking(true).is_err()
+            || sock.bind(&std::net::SocketAddr::from(([0u16; 8], 0)).into()).is_err()
+            || sock.listen(128).is_err()
+        {
+            return;
+        }
+        let Ok(listener) = tokio::net::TcpListener::from_std(sock.into()) else { return };
         let port = listener.local_addr().unwrap().port();
-        // no IPv6 here, or "localhost" is IPv4 only: nothing to see
-        if tokio::net::TcpStream::connect(("::1", port)).await.is_err() {
+        // no IPv6 here, or dual-stack IPv4 loopback is unreachable: nothing to see
+        if tokio::net::TcpStream::connect(("::1", port)).await.is_err()
+            || tokio::net::TcpStream::connect(("127.0.0.1", port)).await.is_err()
+        {
             return;
         }
         tokio::spawn(async move {

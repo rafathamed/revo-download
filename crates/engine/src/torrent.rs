@@ -185,7 +185,7 @@ pub fn stays_inside(path: &Path, dir: &Path) -> bool {
     // "dir/./name" as aria2 writes it; a path given from the folder
     let clean = |p: &Path| p.components().filter(|c| !matches!(c, Component::CurDir)).collect::<PathBuf>();
     let (path, dir) = (clean(path), clean(dir));
-    let rel = if path.is_absolute() {
+    let rel = if path.has_root() {
         match path.strip_prefix(&dir) {
             Ok(r) => r.to_path_buf(),
             Err(_) => return false,
