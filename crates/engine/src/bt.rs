@@ -708,6 +708,19 @@ impl Torrents {
         }
     }
 
+    /// Forget a completed torrent and remove only its unselected new files.
+    /// The caller waits for this before reporting the download as completed.
+    pub async fn forget_and_clean(&self, gid: &str, leftovers: Vec<PathBuf>) {
+        self.forget(gid).await;
+        for file in leftovers {
+            if std::fs::remove_file(&file).is_ok() {
+                if let Some(dir) = file.parent() {
+                    let _ = std::fs::remove_dir(dir); // only when empty
+                }
+            }
+        }
+    }
+
     /// Complete: it shares with others until `minutes` passed or it sent
     /// `ratio` times its size, whichever comes first (0 = that one is no
     /// limit; both 0: no sharing), then it is forgotten and `leftovers`
@@ -739,14 +752,7 @@ impl Torrents {
                 };
                 if done {
                     if me.sharing.lock_ok().get(&gid) == Some(&turn) {
-                        me.forget(&gid).await;
-                        for f in &leftovers {
-                            if std::fs::remove_file(f).is_ok() {
-                                if let Some(dir) = f.parent() {
-                                    let _ = std::fs::remove_dir(dir); // only when empty
-                                }
-                            }
-                        }
+                        me.forget_and_clean(&gid, leftovers).await;
                     }
                     return;
                 }
