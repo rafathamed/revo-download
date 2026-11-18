@@ -10,3 +10,5 @@ DRM-protected streams remain detected as protected content and are not bypassed.
 
 
 Build validation: the release workflow runs browser-extension regression tests, Rust engine tests, dependency auditing, FFmpeg fixture checks, and Windows installer packaging before publishing.
+
+The document-start bridge forwards page-world detections immediately, so media requests made during initial page startup are retained before the UI content script loads.
