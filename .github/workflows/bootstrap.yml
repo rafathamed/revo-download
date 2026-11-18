@@ -22,6 +22,7 @@ jobs:
       - name: Extract source files into repository root
         shell: pwsh
         run: |
+          $PSNativeCommandUseErrorActionPreference = $false
           $archive = Join-Path $env:GITHUB_WORKSPACE "REVO-Download-v1.0.11-source-fixed.zip"
           if (-not (Test-Path $archive)) { throw "Source ZIP was not found: $archive" }
           $extract = Join-Path $env:RUNNER_TEMP "revo-source-extract"
@@ -29,13 +30,10 @@ jobs:
           Expand-Archive -LiteralPath $archive -DestinationPath $extract -Force
           $source = Join-Path $extract "REVO-Download"
           if (-not (Test-Path (Join-Path $source "Cargo.toml"))) { throw "Cargo.toml was not found in the extracted source." }
-          & {
-            $PSNativeCommandUseErrorActionPreference = $false
-            robocopy $source $env:GITHUB_WORKSPACE /E /COPY:DAT /R:2 /W:1 /XD .git
-            $copyCode = $LASTEXITCODE
-            if ($copyCode -ge 8) { throw "Robocopy failed with exit code $copyCode" }
-            Write-Host "Robocopy completed successfully (exit code $copyCode)."
-          }
+          robocopy $source $env:GITHUB_WORKSPACE /E /COPY:DAT /R:2 /W:1 /XD .git
+          $copyCode = $LASTEXITCODE
+          if ($copyCode -ge 8) { throw "Robocopy failed with exit code $copyCode" }
+          Write-Host "Robocopy completed successfully (exit code $copyCode)."
 
       - name: Commit extracted source tree
         shell: pwsh
