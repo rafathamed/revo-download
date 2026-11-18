@@ -7,3 +7,6 @@ This release strengthens browser video discovery across:
 - Better separation of direct media files from MSE segment traffic to reduce false detections.
 
 DRM-protected streams remain detected as protected content and are not bypassed.
+
+
+Build validation: the release workflow runs browser-extension regression tests, Rust engine tests, dependency auditing, FFmpeg fixture checks, and Windows installer packaging before publishing.
