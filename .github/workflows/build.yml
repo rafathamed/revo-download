@@ -116,6 +116,7 @@ jobs:
   windows:
     needs: ffmpeg
     runs-on: windows-latest
+    timeout-minutes: 60
     steps:
       # actions pinned to exact commits (a moved tag can't change the build)
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
@@ -160,6 +161,7 @@ jobs:
           node extension/test/yt-core.test.js
           node extension/test/background.sim.js
       - name: Run engine tests
+        timeout-minutes: 15
         shell: pwsh
         run: |
           cargo test -p revo-engine --no-fail-fast 2>&1 | Tee-Object -FilePath tests.txt
