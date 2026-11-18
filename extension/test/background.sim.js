@@ -258,5 +258,20 @@ const tick = () => new Promise((r) => setTimeout(r, 20));
     assert(res.items && res.items.length === 3, "the streams instead of an error: " + JSON.stringify(res));
     console.log("HLS qualities:", labels.join(" | "));
   }
+  // Extensionless direct media returned as octet-stream with a media request type.
+  {
+    listeners.headers({ tabId: 51, type: "media", url: "https://cdn.example/watch/stream?id=abc", statusCode: 200,
+      responseHeaders: [{ name: "Content-Type", value: "application/octet-stream" }, { name: "Content-Disposition", value: 'inline; filename="lecture.mp4"' }, { name: "Content-Length", value: "1200000" }] });
+    await tick(); await tick();
+    const items = await new Promise((resolve) => listeners.msg({ type: "revo-get-media", tabId: 51 }, {}, resolve));
+    assert(items.some((m) => m.url === "https://cdn.example/watch/stream?id=abc" && m.ext === "mp4"), "extensionless media response is detected");
+  }
+  // A page-world manifest report reaches the same per-tab detector.
+  {
+    listeners.msg({ type: "revo-network-media", url: "https://cdn.example/player/master.m3u8?token=1", mime: "application/vnd.apple.mpegurl" }, { tab: { id: 52, url: "https://site.example/watch" } }, () => {});
+    await tick(); await tick();
+    const items = await new Promise((resolve) => listeners.msg({ type: "revo-get-media", tabId: 52 }, {}, resolve));
+    assert(items.some((m) => m.type === "HLS stream" && m.url.includes("master.m3u8")), "page-world manifest detection reaches the popup");
+  }
   console.log("background simulation: all checks passed");
 })().catch((e) => { console.error(e); process.exit(1); });
