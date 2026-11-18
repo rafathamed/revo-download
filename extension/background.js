@@ -1495,7 +1495,7 @@ chrome.webRequest.onHeadersReceived.addListener(
     else if (h["content-length"]) size = Number(h["content-length"]);
     if (size > 0 && size < 96 * 1024) return; // tiny UI sounds, previews and ads
 
-    const mimeExt = (type.split("/")[1] || "").split(";")[0].replace("x-matroska", "mkv").replace("mpeg", "mp3");
+    const mimeExt = (type.split("/")[1] || "").split(";")[0].replace("x-matroska", "mkv").replace("mpeg", "mp3").replace(/^octet-stream$/i, "mp4").replace(/^quicktime$/i, "mov");
     const ext = (dispositionExt && dispositionExt[1] || urlExt && urlExt[1] || mimeExt || "mp4").toLowerCase();
     addMedia(d.tabId, { url, type: type || "video/unknown", size, ext });
   },
