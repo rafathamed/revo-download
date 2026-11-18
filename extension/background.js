@@ -1366,7 +1366,7 @@ async function addMedia(tabId, item) {
   const current = (await chrome.storage.session.get(key))[key] || [];
   if (current.some((m) => m.url === item.url)) return;
   current.push(item);
-  while (current.length > 15) current.shift();
+  while (current.length > 40) current.shift();
   await chrome.storage.session.set({ [key]: current });
   pushToTab(tabId);
   if (item.type === "HLS stream") readHls(tabId, item.url).catch(() => {});
@@ -1465,27 +1465,39 @@ chrome.webRequest.onHeadersReceived.addListener(
     const isHls = HLS_TYPE.test(type) || /\.m3u8(\?|$)/i.test(url);
     // DASH: a list of the parts of a video in several qualities (.mpd)
     const isDash = DASH_TYPE.test(type) || /\.mpd(\?|$)/i.test(url);
-    const isMedia = MEDIA_TYPE.test(type) && !type.includes("mp2t"); // skip HLS chunks
-    if (!isHls && !isDash && !isMedia) return;
+    const disposition = h["content-disposition"] || "";
+    const dispositionName = /filename\*?=(?:UTF-8''|["']?)([^;"']+)/i.exec(disposition);
+    const dispositionExt = dispositionName && /\.([a-z0-9]{2,5})$/i.exec(dispositionName[1].trim());
+    const urlExt = /\.([a-z0-9]{2,5})(?:$|[?#])/i.exec(url);
+    const knownFile = /\.(?:mp4|m4v|webm|mov|mkv|ogv|avi|mp3|m4a|aac|wav|flac|ogg)(?:$|[?#])/i.test(url);
+    // A direct <video>/<audio> response is often extensionless or labelled
+    // application/octet-stream. Only trust that MIME fallback for the browser's
+    // actual "media" request type; XHR video/mp4 responses are often MSE chunks.
+    const directMedia = !type.includes("mp2t") && (
+      (MEDIA_TYPE.test(type) && (d.type === "media" || knownFile)) ||
+      (d.type === "media" && (/octet-stream|binary/i.test(type) || !!dispositionExt))
+    );
+    if (!isHls && !isDash && !directMedia) return;
     if (isDash) {
       addMedia(d.tabId, { url, type: "DASH stream", size: 0, ext: "mp4", dash: true });
       return;
     }
-    // byte-range pieces of a bigger stream can't be saved as a file
-    if (/[?&](range|bytestart)=/i.test(url)) return;
+    if (isHls) {
+      addMedia(d.tabId, { url, type: "HLS stream", size: 0, ext: "m3u8" });
+      return;
+    }
+    // Do not offer byte-range fragments from XHR/fetch as standalone files.
+    if (d.type !== "media" && /[?&](range|bytestart)=/i.test(url)) return;
 
     let size = 0;
     const cr = /\/(\d+)\s*$/.exec(h["content-range"] || "");
     if (cr) size = Number(cr[1]);
     else if (h["content-length"]) size = Number(h["content-length"]);
-    if (isMedia && size > 0 && size < 300 * 1024) return; // tiny clips, ads, sounds
+    if (size > 0 && size < 96 * 1024) return; // tiny UI sounds, previews and ads
 
-    addMedia(d.tabId, {
-      url,
-      type: isHls ? "HLS stream" : type.split(";")[0],
-      size,
-      ext: isHls ? "ts" : (type.split("/")[1] || "mp4").split(";")[0].replace("x-matroska", "mkv").replace("mpeg", "mp3"),
-    });
+    const mimeExt = (type.split("/")[1] || "").split(";")[0].replace("x-matroska", "mkv").replace("mpeg", "mp3");
+    const ext = (dispositionExt && dispositionExt[1] || urlExt && urlExt[1] || mimeExt || "mp4").toLowerCase();
+    addMedia(d.tabId, { url, type: type || "video/unknown", size, ext });
   },
   { urls: ["<all_urls>"] },
   ["responseHeaders"]
@@ -1830,6 +1842,26 @@ function reply(promise, sendResponse) {
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   switch (msg.type) {
+    case "revo-network-media": {
+      if (!sender.tab || sender.tab.id < 0) return false;
+      const url = String(msg.url || "");
+      if (!/^https?:\/\//i.test(url) || url.length > 8192) return false;
+      let parsed;
+      try { parsed = new URL(url); } catch { return false; }
+      if (!["http:", "https:"].includes(parsed.protocol)) return false;
+      if (isTelegramStream(url) || /googlevideo\.com/i.test(url)) return false;
+      const mime = String(msg.mime || "").toLowerCase().split(";")[0];
+      const path = parsed.pathname.toLowerCase();
+      if (/\.m3u8$/.test(path) || /mpegurl/.test(mime)) {
+        addMedia(sender.tab.id, { url, type: "HLS stream", size: 0, ext: "m3u8" });
+      } else if (/\.mpd$/.test(path) || /dash\+xml/.test(mime)) {
+        addMedia(sender.tab.id, { url, type: "DASH stream", size: 0, ext: "mp4", dash: true });
+      } else if (/\.(mp4|m4v|webm|mov|mkv|ogv|avi|mp3|m4a|aac|wav|flac|ogg)$/.test(path)) {
+        const ext = path.split(".").pop();
+        addMedia(sender.tab.id, { url, type: mime || (["mp3","m4a","aac","wav","flac","ogg"].includes(ext) ? "audio/unknown" : "video/unknown"), size: 0, ext });
+      }
+      return false;
+    }
     case "revo-download": {
       const item = msg.item || {};
       // a video inside a frame (embedded player): that frame's page
