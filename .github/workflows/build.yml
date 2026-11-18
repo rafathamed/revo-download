@@ -284,11 +284,18 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release view "v$env:VERSION" --repo "${{ github.repository }}" *> $null
-          if ($LASTEXITCODE -eq 0) { Write-Host "v$env:VERSION is already released"; exit 0 }
           Copy-Item ffmpeg-out/ffmpeg.exe dist/ffmpeg.exe
           $files = @("dist/REVO-Download-Setup.exe", "dist/version.json", "dist/ffmpeg.exe")
           if (Test-Path dist/revo-download-firefox.xpi) { $files += "dist/revo-download-firefox.xpi", "dist/firefox-updates.json" }
-          gh release create "v$env:VERSION" @files --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "REVO Download $env:VERSION" --notes "REVO Download $env:VERSION" --latest
-          if ($LASTEXITCODE -ne 0) { throw "could not create the release" }
+          # An existing draft/empty release must receive its assets; never skip it.
+          gh release view "v$env:VERSION" --repo "${{ github.repository }}" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload "v$env:VERSION" @files --repo "${{ github.repository }}" --clobber
+            if ($LASTEXITCODE -ne 0) { throw "could not upload assets to existing release v$env:VERSION" }
+            gh release edit "v$env:VERSION" --repo "${{ github.repository }}" --title "REVO Download $env:VERSION" --notes "REVO Download $env:VERSION" --latest
+            if ($LASTEXITCODE -ne 0) { throw "could not update existing release v$env:VERSION" }
+          } else {
+            gh release create "v$env:VERSION" @files --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "REVO Download $env:VERSION" --notes "REVO Download $env:VERSION" --latest
+            if ($LASTEXITCODE -ne 0) { throw "could not create the release" }
+          }
           # older releases stay as they are (a way back, and their links keep working)
