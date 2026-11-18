@@ -13,9 +13,12 @@ browser integration for Chrome, Edge, Brave and Firefox.
 - Pause and resume, including after closing or restarting Windows.
 - Browser integration for Chrome, Edge, Brave and Firefox (Firefox signing is required for normal distribution).
 - Video and audio downloads with quality selection, playlists and FFmpeg merging.
+- Expanded browser media discovery for direct and extensionless media responses, HLS/M3U8, DASH/MPD, and dynamically assigned video sources.
 - Queue management, scheduling, speed limits and automatic file categorization.
 - Page link grabber, batch links, import/export lists and torrent support.
 - Arabic and English interface plus the other languages inherited from the upstream project.
+
+See [RELEASE-1.0.13.md](RELEASE-1.0.13.md) for the latest browser media-capture changes.
 
 ## Technology
 
