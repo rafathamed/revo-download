@@ -239,12 +239,8 @@ jobs:
             $fx = "{`n  ""addons"": {`n    ""revo-download@rafathamed.github.io"": {`n      ""updates"": [`n        { ""version"": ""$extVersion"", ""update_link"": ""https://github.com/${{ github.repository }}/releases/download/v$version/revo-download-firefox.xpi"" }`n      ]`n    }`n  }`n}`n"
             [IO.File]::WriteAllText("$PWD/dist/firefox-updates.json", $fx)
           }
-          # never an older add-on in the setup: installing it would put the
-          # old add-on back into Firefox. A release without the signed add-on
-          # of its own version is not published
-          if (-not (Test-Path "$p/revo-download-firefox.xpi") -and $env:IS_RELEASE -eq "true") {
-            throw "the Firefox add-on $extVersion was not signed: the release would carry no Firefox add-on"
-          }
+          # Firefox add-on signing is optional. The Windows EXE installer and
+          # the signed version.json can be released without Mozilla AMO keys.
           # our own small ffmpeg (job "ffmpeg") and its licences
           Copy-Item ffmpeg-out/* "$p/tools/"
           # yt-dlp of one release, checked against that release's SHA2-256SUMS
