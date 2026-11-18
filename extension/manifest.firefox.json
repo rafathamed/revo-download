@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "REVO Download",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "description": "REVO Download browser integration.",
   "permissions": [
     "downloads",
@@ -67,6 +67,19 @@
       "run_at": "document_idle",
       "all_frames": true,
       "match_about_blank": true
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "page-hook.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true,
+      "match_about_blank": true,
+      "world": "MAIN"
     }
   ],
   "browser_specific_settings": {
