@@ -1,0 +1,66 @@
+name: Extract REVO source archive
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "REVO-Download-v1.0.11-source-fixed.zip"
+      - ".github/workflows/bootstrap.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  extract:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - name: Extract source files into repository root
+        shell: pwsh
+        run: |
+          $archive = Join-Path $env:GITHUB_WORKSPACE "REVO-Download-v1.0.11-source-fixed.zip"
+          if (-not (Test-Path $archive)) { throw "Source ZIP was not found: $archive" }
+          $extract = Join-Path $env:RUNNER_TEMP "revo-source-extract"
+          if (Test-Path $extract) { Remove-Item -Recurse -Force $extract }
+          Expand-Archive -LiteralPath $archive -DestinationPath $extract -Force
+          $source = Join-Path $extract "REVO-Download"
+          if (-not (Test-Path (Join-Path $source "Cargo.toml"))) { throw "Cargo.toml was not found in the extracted source." }
+          robocopy $source $env:GITHUB_WORKSPACE /E /COPY:DAT /R:2 /W:1 /XD .git
+          if ($LASTEXITCODE -ge 8) { throw "Robocopy failed with exit code $LASTEXITCODE" }
+
+      - name: Commit extracted source tree
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "Add extracted REVO Download v1.0.11 source"
+            if ($LASTEXITCODE -ne 0) { throw "Could not commit extracted source." }
+            git push origin HEAD:main
+            if ($LASTEXITCODE -ne 0) { throw "Could not push extracted source to main." }
+          } else {
+            Write-Host "The extracted source is already present."
+          }
+
+      - name: Start the Windows build workflow
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh auth status
+          $started = $false
+          for ($i = 1; $i -le 6; $i++) {
+            gh workflow run build.yml --ref main --repo $env:GITHUB_REPOSITORY
+            if ($LASTEXITCODE -eq 0) { $started = $true; break }
+            Write-Host "Build workflow is not ready yet; retry $i of 6."
+            Start-Sleep -Seconds 10
+          }
+          if (-not $started) { throw "Could not dispatch build.yml. Open Actions and run 'Build REVO Download for Windows' manually." }
