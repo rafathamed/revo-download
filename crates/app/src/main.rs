@@ -2773,7 +2773,7 @@ pub(crate) fn open_add_dialog(ctx: &Ctx, url: String, headers: RequestHeaders, n
     d.set_info_error(false);
     d.set_probing(false);
     open_window!(d);
-    // No network transfer starts while this dialog is open. The only path
+    // No file download starts while this dialog is open. The only path
     // that creates a running download is confirm_add(..., true) from Start.
     if !url.is_empty() {
         start_probe(ctx, url);
