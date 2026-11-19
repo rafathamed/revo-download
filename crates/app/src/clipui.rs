@@ -48,10 +48,11 @@ pub(crate) fn part_name(title: &str, ext: &str, key: &str) -> String {
     format!("{stem}.{ext}")
 }
 
-/// A part sent by the browser add-in: straight to the list.
-pub(crate) fn add_part(ui: &Ui, req: NewDownload) {
-    let id = ui.ctx.mgr.add(req);
-    show_progress_for_start(ui, id);
+/// A part sent by the browser add-in: add it as a stopped item.
+/// The user starts the actual transfer from REVO's main download list.
+pub(crate) fn add_part(ui: &Ui, mut req: NewDownload) {
+    req.start = false;
+    ui.ctx.mgr.add(req);
     refresh(ui);
 }
 
