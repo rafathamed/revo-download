@@ -189,6 +189,7 @@ component DownloadItem inherits Rectangle {
                 }
                 MenuEntry {
                     text: root.done ? @tr("Open") : @tr("Show download progress");
+                    enabled: root.sel-count <= 1;
                     glyph: root.done ? "play" : "progress";
                     bold: true;
                     clicked => {
@@ -198,12 +199,12 @@ component DownloadItem inherits Rectangle {
                 MenuEntry {
                     text: @tr("Open with…");
                     glyph: "openwith";
-                    enabled: root.done;
+                    enabled: root.done && root.sel-count <= 1;
                     clicked => {
                         root.action("openwith");
                     }
                 }
-                if !root.done && (root.data.kind == "video" || root.data.kind == "audio"): MenuEntry {
+                if root.sel-count <= 1 && !root.done && (root.data.kind == "video" || root.data.kind == "audio"): MenuEntry {
                     text: @tr("Play while downloading");
                     glyph: "play";
                     glyph-color: #d6631d;
@@ -221,6 +222,7 @@ component DownloadItem inherits Rectangle {
                 MenuEntry {
                     text: @tr("Open folder");
                     glyph: "folder";
+                    enabled: root.sel-count <= 1;
                     clicked => {
                         root.action("folder");
                     }
@@ -254,7 +256,7 @@ component DownloadItem inherits Rectangle {
                 MenuEntry {
                     text: @tr("Refresh download address…");
                     glyph: "refresh";
-                    enabled: !root.done;
+                    enabled: !root.done && root.sel-count <= 1;
                     clicked => {
                         root.action("refresh");
                     }
@@ -262,6 +264,7 @@ component DownloadItem inherits Rectangle {
                 MenuEntry {
                     text: @tr("Move / Rename…");
                     glyph: "edit";
+                    enabled: root.sel-count <= 1;
                     clicked => {
                         root.action("move");
                     }
@@ -288,7 +291,7 @@ component DownloadItem inherits Rectangle {
                 MenuEntry {
                     text: @tr("Check file (SHA-256)");
                     glyph: "hash";
-                    enabled: root.done;
+                    enabled: root.done && root.sel-count <= 1;
                     clicked => {
                         root.action("sha256");
                     }
@@ -296,6 +299,7 @@ component DownloadItem inherits Rectangle {
                 MenuEntry {
                     text: @tr("Properties");
                     glyph: "info";
+                    enabled: root.sel-count <= 1;
                     clicked => {
                         root.action("properties");
                     }
@@ -1886,6 +1890,13 @@ export component MainWindow inherits ThemedWindow {
                 HRow {
                     padding-left: 8px;
                     padding-right: 8px;
+                    if root.sel-count > 1: Text {
+                        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+                        text: @tr("{} downloads selected", root.sel-count);
+                        vertical-alignment: center;
+                        font-size: 11px * Theme.font-scale;
+                        color: Theme.accent;
+                    }
                     Text {
                         horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
                         text: root.status-text;
