@@ -18,3 +18,6 @@
 - The installer continues to prepare the REVO Native Messaging host and extension files for the current Windows user.
 - Chromium browsers do not allow ordinary desktop installers to silently sideload an unpublished local extension on unmanaged consumer devices. A published Chrome Web Store / Edge Add-ons listing is required for the supported store-based installation flow; the browser still controls its own final approval prompt.
 - Firefox requires a Mozilla-signed add-on and its normal browser approval flow. Enterprise-only force-install policies are not applied to personal devices.
+## Build
+
+- Windows installer and signed update target: 1.0.17.
