@@ -64,7 +64,7 @@ fn fill(ui: &Ui, d: &SettingsDialog, s: &Settings) {
     d.set_close_to_tray(s.close_to_tray);
     d.set_gpu_drawing(s.gpu_drawing);
     d.set_clipboard(s.clipboard_monitor);
-    d.set_auto_clipboard(s.auto_start_clipboard);
+    d.set_auto_clipboard(false);
     d.set_double_click(s.double_click.min(1) as i32);
     d.set_show_tips(s.show_tips);
     d.set_port(s.browser_port as i32);
@@ -83,8 +83,8 @@ fn fill(ui: &Ui, d: &SettingsDialog, s: &Settings) {
     d.set_category_folders(s.category_folders);
     d.set_temp_dir(s.temp_dir.as_ref().map(|p| p.display().to_string()).unwrap_or_default().into());
     // Downloads
-    d.set_show_start_dialog(s.show_start_dialog);
-    d.set_start_while_info(s.start_while_info);
+    d.set_show_start_dialog(true);
+    d.set_start_while_info(false);
     d.set_complete_dialog(s.show_complete_dialog);
     d.set_complete_each(s.complete_each_in_group);
     d.set_ask_remove(s.ask_before_remove);
@@ -165,7 +165,7 @@ fn read(ui: &Ui, d: &SettingsDialog, mut s: Settings) -> Result<Settings, String
     s.close_to_tray = d.get_close_to_tray();
     s.gpu_drawing = d.get_gpu_drawing();
     s.clipboard_monitor = d.get_clipboard();
-    s.auto_start_clipboard = d.get_auto_clipboard();
+    s.auto_start_clipboard = false;
     s.double_click = d.get_double_click().clamp(0, 1) as u32;
     s.show_tips = d.get_show_tips();
     s.browser_port = d.get_port().clamp(1024, 65535) as u16;
@@ -193,8 +193,8 @@ fn read(ui: &Ui, d: &SettingsDialog, mut s: Settings) -> Result<Settings, String
     let temp = d.get_temp_dir().trim().to_string();
     s.temp_dir = (!temp.is_empty()).then(|| PathBuf::from(temp));
     // Downloads
-    s.show_start_dialog = d.get_show_start_dialog();
-    s.start_while_info = d.get_start_while_info();
+    s.show_start_dialog = true;
+    s.start_while_info = false;
     s.show_complete_dialog = d.get_complete_dialog();
     s.complete_each_in_group = d.get_complete_each();
     s.ask_before_remove = d.get_ask_remove();
