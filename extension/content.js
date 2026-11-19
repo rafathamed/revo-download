@@ -269,7 +269,7 @@
   const OLD_SIZES = { small: 0.85, normal: 1, large: 1.25 };
   // its look: the add-in's menu > "Button style"
   const STYLES = ["compact", "blue", "dark", "light", "green", "icon"];
-  let look = "compact";
+  let look = "blue";
   const applyLook = () => {
     for (const b of bubbles.values()) {
       const w = b.root.querySelector(".wrap");
@@ -311,16 +311,16 @@
         bubbles.forEach((b) => placeOne(b));
       }
     });
-    chrome.storage.local.get({ bubbleScale: null, bubbleSize: "normal", bubbleStyle: "compact", bubbleOpacity: 0.9 }, (o) => {
+    chrome.storage.local.get({ bubbleScale: null, bubbleSize: "normal", bubbleStyle: "blue", bubbleOpacity: 0.9 }, (o) => {
       zoom = clampZoom(o && o.bubbleScale != null ? o.bubbleScale : OLD_SIZES[o && o.bubbleSize]);
       solid = clampSolid(o && o.bubbleOpacity);
-      look = STYLES.includes(o && o.bubbleStyle) ? o.bubbleStyle : "compact";
+      look = STYLES.includes(o && o.bubbleStyle) ? o.bubbleStyle : "blue";
       applyZoom();
       applyLook();
     });
     chrome.storage.onChanged.addListener((ch) => {
       if (ch.bubbleStyle) {
-        look = STYLES.includes(ch.bubbleStyle.newValue) ? ch.bubbleStyle.newValue : "compact";
+        look = STYLES.includes(ch.bubbleStyle.newValue) ? ch.bubbleStyle.newValue : "blue";
         applyLook();
         return;
       }
@@ -381,6 +381,35 @@
     .off { cursor: default; opacity: .7; }
     .off:hover { background: #fff; }
     .err { color: #d1342f; }
+
+    /* REVO 1.0.17: a clearer download-manager hierarchy */
+    .wrap { font-size: 12px; line-height: 1.35; color: #1b2e45; }
+    .btn { border-radius: 8px; box-shadow: 0 3px 12px rgba(8,35,67,.3); font-weight: 700; }
+    .part { gap: 7px; padding: 5px 10px; }
+    .side { padding: 5px 8px; }
+    .ico { width: 16px; height: 16px; }
+    .list { width: 360px; max-height: 400px; border-radius: 10px; border-color: #cbd9e8;
+            box-shadow: 0 12px 34px rgba(8,35,67,.28); }
+    .head { padding: 10px 12px; background: linear-gradient(#f7faff,#eaf2fb);
+            color: #183b65; font-size: 12px; font-weight: 750; border-bottom-color: #d9e5f1; }
+    .item { padding: 9px 12px; gap: 9px; border-bottom-color: #e8eef5; }
+    .item:hover { background: #edf5ff; }
+    .num { min-width: 20px; color: #1769c2; font-weight: 750; }
+    .t { font-size: 12px; font-weight: 700; gap: 6px; }
+    .s { color: #687d95; font-size: 10.8px; line-height: 1.4; }
+    .tag { padding: 1px 5px; border-radius: 4px; line-height: 15px; }
+    .codec { border-radius: 4px; padding: 1px 4px; }
+    .msg { padding: 10px 12px; font-size: 11.5px; }
+    .help { padding: 10px 12px; border-radius: 0; }
+    .act { padding: 6px 11px; border: 1px solid #155a9d; border-radius: 6px;
+           background: linear-gradient(#2b7bc2,#155da5); font-weight: 700; }
+    .act:hover { background: linear-gradient(#3288d1,#176bb9); }
+    .clip { padding: 10px 12px; background: #f5f9fe; border-bottom-color: #d9e5f1; }
+    .tabs { background: #edf3fa; border-bottom-color: #d9e5f1; }
+    .tab { padding: 9px 5px; font-size: 11px; }
+    .tab.on { color: #145da5; border-bottom-color: #1769c2; }
+    .cut { padding: 11px 13px 13px; }
+    .cut .qs span { border-radius: 6px; }
     /* "Download a part" */
     .clip { padding: 8px 10px; border-bottom: 1px solid #e3e8ef; background: #fafbfd; }
     .clip .row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
