@@ -367,7 +367,7 @@ fn add(ui: &Ui, i: usize) {
     let steps = if b.firefox {
         t("Firefox opened its add-ons debugging page.\n1. Click \"Load Temporary Add-on…\".\n2. Paste the folder path (Ctrl+V, it is already copied) and open the file \"manifest.json\" in it.\n\nFirefox removes add-ons loaded this way when it closes. To keep it for good the extension must be signed by Mozilla (free) – ask for the signed version.")
     } else {
-        tf("{} opened its extensions page.\n1. Turn on \"Developer mode\" (a switch on that page).\n2. Click \"Load unpacked\".\n3. Paste the folder path (Ctrl+V – it is already copied) and click \"Select folder\".\n\nThat's all: the REVO Download icon appears next to the address bar. You do this only once.", &[&b.name])
+        tf("{} opened its extensions page.\n\nThis local add-in is not yet published in that browser's official store. On an unmanaged personal Windows device, the browser blocks silent installation of an unpublished extension.\n\n1. Turn on \"Developer mode\".\n2. Choose \"Load unpacked\".\n3. Paste the prepared folder path (already copied) and select the folder.\n\nThis is a one-time browser approval step. A store listing is required before the installer can use the supported store-based installation flow.", &[&b.name])
     };
     d.set_steps(steps.into());
 }
