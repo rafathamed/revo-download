@@ -13,6 +13,8 @@
   const emit = (raw, mime = "", meta = {}) => {
     if (typeof raw !== "string" || !/^https?:\/\//i.test(raw)) return;
     const cleanMime = String(mime || "").toLowerCase().split(";")[0];
+    // ISO BMFF fragmented-media segments are not standalone video files.
+    if (/\.(?:m4s|cmfv|cmfa)(?:$|[?#])/i.test(raw)) return;
     const knownPath = mediaPath.test(raw);
     const manifest = manifestMime.test(cleanMime);
     if (!knownPath && !manifest && !mediaMime.test(cleanMime)) return;

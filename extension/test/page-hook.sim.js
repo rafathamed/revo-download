@@ -102,6 +102,11 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "page-hook.js"), "utf
   await window.fetch(fetchUrl);
   await Promise.resolve();
 
+  const dashSegmentUrl = "https://cdn.example/dash/chunk-0042.m4s";
+  fetchFixtures.set(dashSegmentUrl, { status: 200, headers: { "Content-Type": "video/mp4", "Content-Length": "580000" } });
+  await window.fetch(dashSegmentUrl);
+  await Promise.resolve();
+
   const rangeUrl = "https://cdn.example/media/play?id=fetch-range";
   fetchFixtures.set(rangeUrl, { status: 200, headers: { "Content-Type": "video/mp4", "Content-Length": "1800000" } });
   await window.fetch(rangeUrl, { headers: { Range: "bytes=0-" } });
@@ -128,6 +133,7 @@ vm.runInContext(fs.readFileSync(path.join(__dirname, "..", "page-hook.js"), "utf
   const urls = posted.map(x => x.url);
   assert(urls.includes(fetchUrl), "complete extensionless fetch video is reported");
   assert(urls.includes("https://cdn.example/media/play?id=xhr"), "complete extensionless XHR audio is reported");
+  assert(!urls.includes(dashSegmentUrl), "DASH .m4s fragments are not shown as complete files");
   assert(!urls.includes(rangeUrl), "fetch Range response is ignored");
   assert(!urls.includes(partialUrl), "HTTP 206 response is ignored");
   assert(!urls.includes("https://cdn.example/media/play?id=xhr-range"), "XHR Range response is ignored");
