@@ -53,9 +53,20 @@
     if (event.source !== window || !event.data || event.data.__revoMediaHook !== 1) return;
     const d = event.data;
     if (typeof d.url !== "string" || !/^https?:\/\//i.test(d.url) || d.url.length > 8192) return;
-    if (!/\.m3u8(?:[?#]|$)|\.mpd(?:[?#]|$)|\.(?:mp4|m4v|webm|mov|mkv|ogv|avi|mp3|m4a|aac|wav|flac|ogg)(?:[?#]|$)/i.test(d.url) &&
-        !/mpegurl|dash\+xml/i.test(String(d.mime || ""))) return;
-    try { chrome.runtime.sendMessage({ type: "revo-network-media", url: d.url, mime: d.mime || "" }); } catch {}
+    const mime = String(d.mime || "").toLowerCase().split(";")[0];
+    const hasKnownPath = /\.m3u8(?:[?#]|$)|\.mpd(?:[?#]|$)|\.(?:mp4|m4v|webm|mov|mkv|ogv|avi|mp3|m4a|aac|wav|flac|ogg)(?:[?#]|$)/i.test(d.url);
+    const isManifest = /mpegurl|dash\+xml/i.test(mime);
+    const isMediaMime = /^(video|audio)\//i.test(mime);
+    if (!hasKnownPath && !isManifest && !isMediaMime) return;
+    if (isMediaMime && (!Number.isFinite(Number(d.contentLength)) || Number(d.contentLength) < 96 * 1024 ||
+        Number(d.status) === 206 || d.contentRange || d.rangeRequested)) return;
+    try {
+      chrome.runtime.sendMessage({
+        type: "revo-network-media", url: d.url, mime,
+        status: Number(d.status) || 0, contentLength: Number(d.contentLength) || 0,
+        contentRange: String(d.contentRange || ""), rangeRequested: !!d.rangeRequested
+      });
+    } catch {}
   }, false);
   for (const t of KEEP) addEventListener(t, route, true);
 })();

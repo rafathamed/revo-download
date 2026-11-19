@@ -266,6 +266,20 @@ const tick = () => new Promise((r) => setTimeout(r, 20));
     const items = await new Promise((resolve) => listeners.msg({ type: "revo-get-media", tabId: 51 }, {}, resolve));
     assert(items.some((m) => m.url === "https://cdn.example/watch/stream?id=abc" && m.ext === "mp4"), "extensionless media response is detected");
   }
+  // An extensionless complete video response is detected from its MIME type.
+  {
+    listeners.msg({ type: "revo-network-media", url: "https://cdn.example/media/play?id=full", mime: "video/mp4",
+      status: 200, contentLength: 1800000 }, { tab: { id: 53, url: "https://site.example/watch" } }, () => {});
+    // Partial responses and explicit Range requests must not be shown as files.
+    listeners.msg({ type: "revo-network-media", url: "https://cdn.example/media/play?id=partial", mime: "video/mp4",
+      status: 206, contentLength: 1800000, contentRange: "bytes 0-999/1800000" }, { tab: { id: 53, url: "https://site.example/watch" } }, () => {});
+    listeners.msg({ type: "revo-network-media", url: "https://cdn.example/media/play?id=range", mime: "video/mp4",
+      status: 200, contentLength: 1800000, rangeRequested: true }, { tab: { id: 53, url: "https://site.example/watch" } }, () => {});
+    await tick(); await tick();
+    const items = await new Promise((resolve) => listeners.msg({ type: "revo-get-media", tabId: 53 }, {}, resolve));
+    assert(items.some((m) => m.url.includes("id=full") && m.ext === "mp4"), "extensionless video/mp4 is detected");
+    assert(!items.some((m) => /id=(partial|range)/.test(m.url)), "partial and ranged media fragments are filtered");
+  }
   // A page-world manifest report reaches the same per-tab detector.
   {
     listeners.msg({ type: "revo-network-media", url: "https://cdn.example/player/master.m3u8?token=1", mime: "application/vnd.apple.mpegurl" }, { tab: { id: 52, url: "https://site.example/watch" } }, () => {});

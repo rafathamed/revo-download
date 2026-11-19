@@ -8,14 +8,31 @@
   const sent = new Set();
   const mediaPath = /\.(?:m3u8|mpd|mp4|m4v|webm|mov|mkv|ogv|avi|mp3|m4a|aac|wav|flac|ogg)(?:$|[?#])/i;
   const manifestMime = /mpegurl|dash\+xml/i;
-  const emit = (raw, mime = "") => {
+  const mediaMime = /^(video|audio)\//i;
+  const MIN_COMPLETE_MEDIA = 96 * 1024;
+  const emit = (raw, mime = "", meta = {}) => {
     if (typeof raw !== "string" || !/^https?:\/\//i.test(raw)) return;
-    if (!mediaPath.test(raw) && !manifestMime.test(String(mime))) return;
+    const cleanMime = String(mime || "").toLowerCase().split(";")[0];
+    const knownPath = mediaPath.test(raw);
+    const manifest = manifestMime.test(cleanMime);
+    if (!knownPath && !manifest && !mediaMime.test(cleanMime)) return;
+    // A 206/Range response is a fragment, not a standalone downloadable file.
+    // MIME-only URLs are accepted only when the server reports a substantial
+    // complete response; this avoids listing the small MSE chunks as videos.
+    if (meta.rangeRequested || Number(meta.status) === 206 || meta.contentRange) return;
+    if (!knownPath && !manifest && mediaMime.test(cleanMime) &&
+        (!Number(meta.contentLength) || Number(meta.contentLength) < MIN_COMPLETE_MEDIA)) return;
     const key = raw;
     if (sent.has(key)) return;
     sent.add(key);
     if (sent.size > 1500) sent.delete(sent.values().next().value);
-    window.postMessage({ __revoMediaHook: 1, url: raw, mime: String(mime || "").slice(0, 160) }, "*");
+    window.postMessage({
+      __revoMediaHook: 1, url: raw, mime: cleanMime.slice(0, 160),
+      status: Number(meta.status) || 0,
+      contentLength: Number(meta.contentLength) || 0,
+      contentRange: String(meta.contentRange || "").slice(0, 160),
+      rangeRequested: !!meta.rangeRequested
+    }, "*");
   };
   const absolute = (raw) => {
     try { return new URL(raw, location.href).href; } catch { return ""; }
@@ -26,10 +43,24 @@
     const originalFetch = window.fetch;
     window.fetch = function(...args) {
       let requested = "";
-      try { requested = typeof args[0] === "string" ? args[0] : args[0] && args[0].url; } catch {}
+      let rangeRequested = false;
+      try {
+        requested = typeof args[0] === "string" ? args[0] : args[0] && args[0].url;
+        const requestHeaders = args[0] && args[0].headers;
+        const initHeaders = args[1] && args[1].headers;
+        rangeRequested = new Headers(requestHeaders || undefined).has("range") ||
+          new Headers(initHeaders || undefined).has("range");
+      } catch {}
       const promise = originalFetch.apply(this, args);
       promise.then((response) => {
-        try { emit(response.url || absolute(requested), response.headers.get("content-type") || ""); } catch {}
+        try {
+          emit(response.url || absolute(requested), response.headers.get("content-type") || "", {
+            status: response.status,
+            contentLength: Number(response.headers.get("content-length")) || 0,
+            contentRange: response.headers.get("content-range") || "",
+            rangeRequested
+          });
+        } catch {}
       }).catch(() => {});
       return promise;
     };
@@ -40,13 +71,26 @@
     const XHR = window.XMLHttpRequest;
     const open = XHR.prototype.open;
     XHR.prototype.open = function(method, url, ...rest) {
+      this.__revoRangeRequested = false;
       try { this.__revoRequestedUrl = absolute(String(url)); } catch { this.__revoRequestedUrl = ""; }
       return open.call(this, method, url, ...rest);
+    };
+    const setRequestHeader = XHR.prototype.setRequestHeader;
+    XHR.prototype.setRequestHeader = function(name, value) {
+      if (String(name).toLowerCase() === "range") this.__revoRangeRequested = true;
+      return setRequestHeader.call(this, name, value);
     };
     const send = XHR.prototype.send;
     XHR.prototype.send = function(...args) {
       this.addEventListener("loadend", () => {
-        try { emit(this.responseURL || this.__revoRequestedUrl, this.getResponseHeader("content-type") || ""); } catch {}
+        try {
+          emit(this.responseURL || this.__revoRequestedUrl, this.getResponseHeader("content-type") || "", {
+            status: this.status,
+            contentLength: Number(this.getResponseHeader("content-length")) || 0,
+            contentRange: this.getResponseHeader("content-range") || "",
+            rangeRequested: !!this.__revoRangeRequested
+          });
+        } catch {}
       }, { once: true });
       return send.apply(this, args);
     };

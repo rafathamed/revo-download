@@ -1852,13 +1852,30 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       if (isTelegramStream(url) || /googlevideo\.com/i.test(url)) return false;
       const mime = String(msg.mime || "").toLowerCase().split(";")[0];
       const path = parsed.pathname.toLowerCase();
+      const status = Number(msg.status) || 0;
+      const contentLength = Math.max(0, Number(msg.contentLength) || 0);
+      const contentRange = String(msg.contentRange || "");
+      const ranged = !!msg.rangeRequested || status === 206 || !!contentRange;
       if (/\.m3u8$/.test(path) || /mpegurl/.test(mime)) {
         addMedia(sender.tab.id, { url, type: "HLS stream", size: 0, ext: "m3u8" });
       } else if (/\.mpd$/.test(path) || /dash\+xml/.test(mime)) {
         addMedia(sender.tab.id, { url, type: "DASH stream", size: 0, ext: "mp4", dash: true });
+      } else if (MEDIA_TYPE.test(mime) && !/mp2t/i.test(mime)) {
+        // Extensionless fetch/XHR media is accepted only when it looks like a
+        // complete response. Partial byte ranges and small MSE chunks are not
+        // offered as downloadable files.
+        if (ranged || contentLength < 96 * 1024) return false;
+        const mimeExt = ({
+          "video/mp4": "mp4", "video/webm": "webm", "video/quicktime": "mov",
+          "video/x-matroska": "mkv", "video/ogg": "ogv", "video/x-msvideo": "avi",
+          "audio/mpeg": "mp3", "audio/mp4": "m4a", "audio/aac": "aac",
+          "audio/wav": "wav", "audio/x-wav": "wav", "audio/flac": "flac",
+          "audio/ogg": "ogg", "audio/webm": "webm",
+        })[mime] || "mp4";
+        addMedia(sender.tab.id, { url, type: mime, size: contentLength, ext: mimeExt });
       } else if (/\.(mp4|m4v|webm|mov|mkv|ogv|avi|mp3|m4a|aac|wav|flac|ogg)$/.test(path)) {
         const ext = path.split(".").pop();
-        addMedia(sender.tab.id, { url, type: mime || (["mp3","m4a","aac","wav","flac","ogg"].includes(ext) ? "audio/unknown" : "video/unknown"), size: 0, ext });
+        addMedia(sender.tab.id, { url, type: mime || (["mp3","m4a","aac","wav","flac","ogg"].includes(ext) ? "audio/unknown" : "video/unknown"), size: contentLength, ext });
       }
       return false;
     }
