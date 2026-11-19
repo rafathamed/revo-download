@@ -1,64 +1,177 @@
 <!doctype html>
-<html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
-  body { font: 14px/1.45 "Segoe UI", system-ui, sans-serif; color: #1f2733; margin: 0; width: 420px; min-height: 260px; background: #f4f6fa; }
-  header { display: flex; align-items: center; gap: 8px; padding: 14px 16px; background: #fff; border-bottom: 1px solid #e6eaf0; }
-  header img { width: 26px; height: 26px; }
-  .gear { background: none; color: #6b7686; font-size: 18px; padding: 2px 6px; }
-  .gear:hover { background: #eef1f5; color: #1f2733; }
-  header b { font-size: 16px; }
-  .dot { margin-left: auto; font-size: 12px; color: #6b7686; }
-  .dot::before { content: "●"; margin-right: 4px; color: #b9c0cb; }
-  .dot.on::before { color: #1a9e5a; }
-  section { padding: 12px 16px; }
-  h3 { margin: 4px 0 6px; font-size: 11px; color: #6b7686; text-transform: uppercase; letter-spacing: .04em; }
-  .media { background: #fff; border-radius: 8px; margin: 8px 0; padding: 10px 12px; display: flex; gap: 8px; align-items: center; }
-  .media div { flex: 1; min-width: 0; }
-  .media small { display: block; color: #6b7686; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  button { background: #1f6feb; color: #fff; border: 0; border-radius: 6px; padding: 5px 10px; cursor: pointer; font: inherit; }
-  button:hover { background: #1a5fcc; }
-  .empty { color: #6b7686; }
-  .switch { display: flex; align-items: center; gap: 10px; padding: 10px 16px; background: #fff; border-bottom: 1px solid #e6eaf0; font-size: 13px; }
-  .switch b { font-weight: 600; }
-  .switch small { display: block; color: #6b7686; font-size: 11.5px; }
-  .switch label { margin-left: auto; position: relative; width: 40px; height: 22px; flex: none; cursor: pointer; }
-  .switch input { opacity: 0; width: 0; height: 0; position: absolute; }
-  .switch .knob { position: absolute; inset: 0; background: #b9c0cb; border-radius: 11px; transition: background .15s; }
-  .switch .knob::before { content: ""; position: absolute; left: 3px; top: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .15s; }
-  .switch input:checked + .knob { background: #1a9e5a; }
-  .switch input:checked + .knob::before { transform: translateX(18px); }
-  .switch input:focus-visible + .knob { outline: 2px solid #1f6feb; outline-offset: 2px; }
-  body.off section, body.off .size { opacity: .45; pointer-events: none; }
-  .size { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #fff; border-bottom: 1px solid #e6eaf0; font-size: 13px; color: #6b7686; }
-  .size input[type=range] { flex: 1; accent-color: #1f6feb; }
-  .size select { margin-left: auto; padding: 2px 6px; border: 1px solid #d5dbe4; border-radius: 6px; font: inherit; }
-  .size output { min-width: 40px; text-align: right; color: #1f2733; font-variant-numeric: tabular-nums; }
-  .size .reset { background: none; color: #1f6feb; padding: 0 2px; font-size: 12px; }
-  .size .reset:hover { background: none; text-decoration: underline; }
-  .check { display: flex; align-items: center; gap: 8px; padding: 8px 16px; background: #fff; border-bottom: 1px solid #e6eaf0; font-size: 13px; color: #6b7686; cursor: pointer; }
-  .check input { accent-color: #1f6feb; margin: 0; }
-  body.off .check { opacity: .45; pointer-events: none; }
-  .media .all { background: #e8f0fe; color: #1f6feb; }
-  .media .all:hover { background: #d6e4fd; }
-  .open { margin-top: 8px; }
-  .act { margin-top: 8px; display: block; width: 100%; padding: 6px 10px; border: 1px solid #1d63d6; background: #1d63d6; color: #fff; border-radius: 6px; font: inherit; cursor: pointer; }
-  .act:disabled { opacity: .7; }
-  .left { margin: 0; padding: 8px 16px; background: #fff8e6; border-bottom: 1px solid #f0e2b8; font-size: 12.5px; color: #6b5a1e; }
-  .left[hidden] { display: none; }
+  :root {
+    color-scheme: light;
+    --ink: #18263b;
+    --muted: #687b93;
+    --line: #dce5ef;
+    --blue: #1769c2;
+    --blue-deep: #0b3970;
+    --surface: #ffffff;
+    --canvas: #edf3f9;
+    --green: #169b68;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; width: 460px; max-height: 600px; overflow-y: auto;
+    color: var(--ink); background: var(--canvas);
+    font: 13px/1.45 "Segoe UI", Arial, sans-serif;
+    scrollbar-color: #a8bdd2 transparent; scrollbar-width: thin;
+  }
+  button, input, select { font: inherit; }
+  button { cursor: pointer; }
+  .topbar {
+    display: flex; align-items: center; gap: 11px; padding: 13px 15px;
+    color: #fff; background: linear-gradient(115deg,#0a376d,#1267b9 64%,#2685d5);
+    box-shadow: 0 2px 7px #12365b2b;
+  }
+  .brand { display:flex; align-items:center; gap:10px; min-width:0; }
+  .brand img { width:31px; height:31px; filter:drop-shadow(0 2px 3px #001b3b66); }
+  .brand-copy { display:flex; flex-direction:column; line-height:1.1; }
+  .brand-copy b { font-size:15px; font-weight:750; letter-spacing:.01em; }
+  .brand-copy small { margin-top:4px; color:#c8def3; font-size:9px; font-weight:700; letter-spacing:.14em; }
+  .top-actions { margin-left:auto; display:flex; align-items:center; gap:9px; }
+  .dot {
+    display:inline-flex; align-items:center; gap:6px; color:#d7e9fa;
+    font-size:11px; white-space:nowrap;
+  }
+  .dot::before {
+    content:""; width:7px; height:7px; border-radius:50%;
+    background:#aebfd0; box-shadow:0 0 0 3px #ffffff18;
+  }
+  .dot.on::before { background:#48e0a2; box-shadow:0 0 0 3px #48e0a222; }
+  .gear {
+    width:29px; height:29px; padding:0; border-radius:7px;
+    border:1px solid #ffffff44; color:#fff; background:#ffffff14;
+    font-size:17px; line-height:1;
+  }
+  .gear:hover { background:#ffffff2b; }
+  .left {
+    margin:0; padding:9px 14px; color:#76521b; background:#fff5dc;
+    border-bottom:1px solid #ead8aa; font-size:12px;
+  }
+  .left[hidden] { display:none; }
+  .switch {
+    display:flex; align-items:center; gap:12px; padding:12px 15px;
+    background:#fff; border-bottom:1px solid var(--line);
+  }
+  .power-mark {
+    width:34px; height:34px; display:grid; place-items:center; flex:none;
+    border-radius:9px; background:#e8f2fd; color:var(--blue); font-size:17px;
+  }
+  .switch-copy { min-width:0; flex:1; }
+  .switch b { display:block; font-size:13px; font-weight:700; }
+  .switch small { display:block; margin-top:2px; color:var(--muted); font-size:11px; }
+  .switch label { position:relative; width:40px; height:22px; flex:none; cursor:pointer; }
+  .switch input { position:absolute; opacity:0; width:0; height:0; }
+  .switch .knob {
+    position:absolute; inset:0; border-radius:14px; background:#aab8c8;
+    transition:background .15s ease;
+  }
+  .switch .knob::before {
+    content:""; position:absolute; left:3px; top:3px; width:16px; height:16px;
+    border-radius:50%; background:#fff; box-shadow:0 1px 3px #001c3e33;
+    transition:transform .15s ease;
+  }
+  .switch input:checked + .knob { background:var(--green); }
+  .switch input:checked + .knob::before { transform:translateX(18px); }
+  .switch input:focus-visible + .knob { outline:2px solid var(--blue); outline-offset:3px; }
+  .settings-panel {
+    margin:10px 12px 0; padding:10px 12px 8px; background:#fff;
+    border:1px solid var(--line); border-radius:9px;
+    box-shadow:0 2px 6px #17436b08;
+  }
+  .panel-title { display:flex; justify-content:space-between; align-items:center; margin-bottom:7px; }
+  .panel-title b { font-size:11px; font-weight:800; letter-spacing:.07em; color:#465d78; text-transform:uppercase; }
+  .panel-title span { color:#91a0b3; font-size:9px; font-weight:700; letter-spacing:.08em; }
+  .size {
+    min-height:34px; display:flex; align-items:center; gap:9px;
+    color:#50647e; font-size:11.5px;
+  }
+  .size + .size { border-top:1px solid #eef2f6; }
+  .size > span:first-child { flex:0 0 123px; }
+  .size input[type=range] { min-width:40px; flex:1; accent-color:var(--blue); }
+  .size select {
+    min-width:0; margin-left:auto; padding:4px 7px; color:#243a55;
+    border:1px solid #d5e0eb; border-radius:5px; background:#f8fafc;
+    font-size:11px; outline-color:var(--blue);
+  }
+  .size output {
+    min-width:34px; color:#223c5c; text-align:right;
+    font-size:11px; font-weight:700; font-variant-numeric:tabular-nums;
+  }
+  .reset {
+    border:0; padding:3px 0 3px 3px; color:var(--blue);
+    background:transparent; font-size:10px; font-weight:700;
+  }
+  .reset:hover { text-decoration:underline; }
+  .check {
+    display:flex; align-items:center; gap:8px; margin:8px 12px 0;
+    padding:9px 11px; border:1px solid var(--line); border-radius:7px;
+    color:#50647e; background:#fff; font-size:11.5px; cursor:pointer;
+  }
+  .check input { margin:0; accent-color:var(--blue); }
+  body.off .settings-panel, body.off .check, body.off section { opacity:.48; }
+  body.off .settings-panel, body.off .check { pointer-events:none; }
+  section {
+    margin:10px 12px 12px; padding:11px 12px 12px;
+    border:1px solid var(--line); border-radius:9px; background:#fff;
+    box-shadow:0 2px 6px #17436b08;
+  }
+  .section-heading { display:flex; justify-content:space-between; align-items:center; gap:10px; margin-bottom:8px; }
+  h3 { margin:0; color:#263f5c; font-size:12px; font-weight:750; }
+  .section-heading span { color:#90a0b3; font-size:9px; font-weight:800; letter-spacing:.1em; }
+  .media {
+    display:flex; align-items:center; gap:9px; margin:6px 0; padding:9px 10px;
+    background:#f6f9fc; border:1px solid #e5edf5; border-radius:7px;
+  }
+  .media > div { flex:1; min-width:0; color:#263e5a; font-size:12px; font-weight:650; }
+  .media small {
+    display:block; margin-top:2px; color:#788ca4; font-size:10px;
+    font-weight:400; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  button:not(.gear):not(.reset) {
+    padding:6px 10px; color:#fff; border:1px solid #1459a4; border-radius:5px;
+    background:linear-gradient(#287dd0,#1766b6); font-size:11px; font-weight:700;
+    box-shadow:0 1px 2px #0b3f7522;
+  }
+  button:not(.gear):not(.reset):hover { background:linear-gradient(#378bdc,#1b70c3); }
+  button:not(.gear):not(.reset):disabled { opacity:.55; cursor:default; }
+  .media .all { color:#155ba6; border-color:#c6dbf2; background:#e8f2fd; box-shadow:none; }
+  .media .all:hover { background:#dbeafa; }
+  .empty {
+    padding:17px 10px; color:#7b8ea5; text-align:center; font-size:11px;
+    border:1px dashed #cad7e5; border-radius:7px; background:#f8fafc;
+  }
+  .act { display:block; width:100%; margin-top:8px; }
+  .open { display:inline-block; margin-top:9px; color:#1769c2; font-size:11px; font-weight:700; text-decoration:none; }
+  .open:hover { text-decoration:underline; }
+  footer {
+    display:flex; justify-content:space-between; gap:8px; padding:0 15px 11px;
+    color:#8a9bb0; font-size:9px; font-weight:600; letter-spacing:.04em;
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition:none !important; } }
 </style>
 </head>
 <body>
-  <header>
-    <img src="icons/icon32.png" alt="">
-    <b>REVO Download</b>
-    <span class="dot" id="status">checking…</span>
-    <button class="gear" id="settings" title="Settings">⚙</button>
+  <header class="topbar">
+    <div class="brand">
+      <img src="icons/icon32.png" alt="">
+      <div class="brand-copy"><b>REVO Download</b><small>SMART DOWNLOAD INTEGRATION</small></div>
+    </div>
+    <div class="top-actions">
+      <span class="dot" id="status">checking…</span>
+      <button class="gear" id="settings" title="Settings" aria-label="Settings">⚙</button>
+    </div>
   </header>
   <p class="left" id="left" hidden></p>
   <div class="switch">
-    <div>
+    <div class="power-mark" aria-hidden="true">⇩</div>
+    <div class="switch-copy">
       <b id="onText">REVO Download is on</b>
       <small id="onHint">Downloads and videos of this browser go to REVO Download</small>
     </div>
@@ -67,36 +180,43 @@
       <span class="knob"></span>
     </label>
   </div>
-  <div class="size">
-    <span>Download button size</span>
-    <input type="range" id="scale" min="50" max="200" step="5" value="100" aria-label="Download button size">
-    <output id="scaleText">100%</output>
-    <button class="reset" id="scaleReset" title="Back to normal size">Reset</button>
-  </div>
-  <div class="size">
-    <span>Button style</span>
-    <select id="look" aria-label="Button style">
-      <option value="compact">Small (arrow + ✕)</option>
-      <option value="blue">Blue</option>
-      <option value="dark">Dark</option>
-      <option value="light">Light</option>
-      <option value="green">Green</option>
-      <option value="icon">Icon only</option>
-    </select>
-  </div>
-  <div class="size">
-    <span>Button see-through</span>
-    <input type="range" id="solid" min="20" max="100" step="5" value="90" aria-label="How solid the download button is">
-    <output id="solidText">90%</output>
+  <div class="settings-panel">
+    <div class="panel-title"><b>Download controls</b><span>APPEARANCE</span></div>
+    <div class="size">
+      <span>Video button size</span>
+      <input type="range" id="scale" min="50" max="200" step="5" value="100" aria-label="Download button size">
+      <output id="scaleText">100%</output>
+      <button class="reset" id="scaleReset" title="Back to normal size">Reset</button>
+    </div>
+    <div class="size">
+      <span>Button style</span>
+      <select id="look" aria-label="Button style">
+        <option value="compact">Compact</option>
+        <option value="blue">Blue</option>
+        <option value="dark">Dark</option>
+        <option value="light">Light</option>
+        <option value="green">Green</option>
+        <option value="icon">Icon only</option>
+      </select>
+    </div>
+    <div class="size">
+      <span>Button opacity</span>
+      <input type="range" id="solid" min="20" max="100" step="5" value="90" aria-label="How solid the download button is">
+      <output id="solidText">90%</output>
+    </div>
   </div>
   <label class="check">
-    <input type="checkbox" id="fullscreen" />
+    <input type="checkbox" id="fullscreen">
     <span>Show the video button in full screen too</span>
   </label>
   <section>
-    <h3>Media on this page</h3>
+    <div class="section-heading">
+      <h3>Media on this page</h3>
+      <span>DETECTED CONTENT</span>
+    </div>
     <div id="media"><div class="empty">Nothing detected yet. Start playing the video.</div></div>
   </section>
+  <footer><span>REVO DOWNLOAD · RAFAT HAMED</span><span>Browser Companion</span></footer>
   <script src="popup.js"></script>
 </body>
 </html>
