@@ -21,6 +21,18 @@ class MockHeaders {
   has(name) { return this.values.has(String(name).toLowerCase()); }
 }
 
+// Both browser manifests must inject the isolated bridge and main-world
+// observer early, including frames whose origin is inherited (blob:/data:).
+for (const manifestName of ["manifest.json", "manifest.firefox.json"]) {
+  const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "..", manifestName), "utf8"));
+  const early = manifest.content_scripts.find(x => x.js && x.js.includes("early.js"));
+  const hook = manifest.content_scripts.find(x => x.js && x.js.includes("page-hook.js"));
+  assert(early && early.run_at === "document_start" && early.all_frames && early.match_origin_as_fallback,
+    manifestName + ": early bridge must run at document_start in inherited-origin frames");
+  assert(hook && hook.run_at === "document_start" && hook.all_frames && hook.match_origin_as_fallback && hook.world === "MAIN",
+    manifestName + ": main-world observer must run early in inherited-origin frames");
+}
+
 const posted = [];
 const xhrFixtures = [];
 class MockXHR {
