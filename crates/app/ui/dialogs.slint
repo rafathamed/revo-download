@@ -3,7 +3,7 @@
 // Find, Duplicate link, Shutdown countdown, Site Grabber / Download all
 // links, Tip of the day and Refresh download address.
 
-import { Button, LineEdit, SpinBox, ComboBox, ListView, TextEdit, ScrollView, AboutSlint, Slider } from "std-widgets.slint";
+import { Button, LineEdit, SpinBox, ComboBox, ListView, TextEdit, ScrollView, Slider } from "std-widgets.slint";
 import { Cols, PairRow, LinkRow, QueueRow, DownloadRow, Theme, ThemedWindow, TypeIcon, BigTypeIcon, HeaderCell, Cell, Glyph, HRow, CheckBox } from "common.slint";
 
 // ------------------------------------------------------------------ small parts
@@ -3904,9 +3904,9 @@ export component AboutDialog inherits ThemedWindow {
         HRow {
             alignment: center;
             Button {
-                text: @tr("Official download page (GitHub)");
+                text: @tr("Official download page");
                 clicked => {
-                    root.open-link("https://github.com/rafathamed/revo-download/releases/latest");
+                    root.open-link("https://revo-download.higgsfield.app/");
                 }
             }
         }
@@ -3923,12 +3923,6 @@ export component AboutDialog inherits ThemedWindow {
             font-size: 12px * Theme.font-scale;
             font-weight: 700;
             color: Theme.text;
-        }
-        Rectangle {
-            height: 6px;
-        }
-        AboutSlint {
-            preferred-height: 90px;
         }
         HRow {
             alignment: end;

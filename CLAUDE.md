@@ -3,7 +3,7 @@
 This repository is the source of truth for REVO Download. Work from the latest `main` branch; do not use an older ZIP or copy files from a previous release.
 
 ## Current source state
-- Product version is defined in the workspace `Cargo.toml` (currently 1.0.12).
+- Product version is defined in the workspace `Cargo.toml` (currently 1.0.16).
 - Windows packaging and release automation: `.github/workflows/build.yml`.
 - Rust self-update implementation: `crates/engine/src/selfupdate.rs`.
 - Installer definition: `installer/revo.iss`.

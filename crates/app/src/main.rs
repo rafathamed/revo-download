@@ -3185,21 +3185,21 @@ fn row_menu(ui: &Ui, id: i32) {
     if n > 1 {
         items.push(Item::new(900, tf("{} downloads selected", &[&n]), false));
     }
-    items.push(Item { bold: true, ..Item::new(100, if done { t("Open") } else { t("Show download progress") }, true) });
-    items.push(Item::new(1, t("Open with…"), done));
-    if !done && media {
+    items.push(Item { bold: true, ..Item::new(100, if done { t("Open") } else { t("Show download progress") }, n <= 1) });
+    items.push(Item::new(1, t("Open with…"), done && n <= 1));
+    if n <= 1 && !done && media {
         items.push(Item::new(2, t("Play while downloading"), true));
     }
     if media && n <= 1 {
         items.push(Item::new(3, t("Download a part of it…"), true));
     }
-    items.push(Item::new(4, t("Open folder"), true));
+    items.push(Item::new(4, t("Open folder"), n <= 1));
     items.push(Item::separator());
     items.push(Item::new(5, t("Resume download"), state == 2 || state == 4 || n > 1));
     items.push(Item::new(6, t("Stop download"), state == 0 || state == 1 || n > 1));
     items.push(Item::new(7, t("Redownload"), true));
-    items.push(Item::new(8, t("Refresh download address…"), !done));
-    items.push(Item::new(9, t("Move / Rename…"), true));
+    items.push(Item::new(8, t("Refresh download address…"), !done && n <= 1));
+    items.push(Item::new(9, t("Move / Rename…"), n <= 1));
     items.push(Item::separator());
     let mut queues: Vec<Item> = (0..ui.queues.row_count())
         .filter_map(|i| ui.queues.row_data(i))
@@ -3210,8 +3210,8 @@ fn row_menu(ui: &Ui, id: i32) {
     items.push(Item { sub: queues, ..Item::new(0, t("Move to queue"), true) });
     items.push(Item::separator());
     items.push(Item::new(10, t("Copy address"), true));
-    items.push(Item::new(11, t("Check file (SHA-256)"), done));
-    items.push(Item::new(12, t("Properties"), true));
+    items.push(Item::new(11, t("Check file (SHA-256)"), done && n <= 1));
+    items.push(Item::new(12, t("Properties"), n <= 1));
     items.push(Item::separator());
     items.push(Item::new(13, t("Remove"), true));
     items.push(Item::separator());
