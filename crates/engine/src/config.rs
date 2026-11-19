@@ -338,7 +338,7 @@ pub struct Settings {
     // ---- v4: everything of the classic Options window
     /// sidebar categories (General is implicit, always last)
     pub categories: Vec<CategoryDef>,
-    /// start downloading links copied to the clipboard without asking
+    /// Legacy compatibility field; clipboard-captured downloads always require confirmation
     pub auto_start_clipboard: bool,
     /// double click on a download: 0 open file / progress, 1 properties
     pub double_click: u32,
@@ -364,7 +364,7 @@ pub struct Settings {
     pub panel_min_audio_kb: u64,
     /// .sgpart files go here while downloading (None = next to the file)
     pub temp_dir: Option<PathBuf>,
-    /// "Download File Info" window for downloads from the browser / clipboard
+    /// Legacy compatibility field; browser / clipboard captures always show confirmation
     pub show_start_dialog: bool,
     /// progress window: 0 normal, 1 minimized, 2 don't show
     pub progress_mode: u32,
@@ -412,7 +412,7 @@ pub struct Settings {
     pub force_shutdown: bool,
     /// "Add REVO Download to your browser" was shown once
     pub extension_prompted: bool,
-    /// start downloading at once while "Download File Info" is shown
+    /// Legacy compatibility field; ignored so transfers never start before confirmation
     pub start_while_info: bool,
     /// "en", "ar", or "" = the language of Windows
     pub language: String,
@@ -534,7 +534,7 @@ impl Default for Settings {
             toolbar_small: false,
             force_shutdown: false,
             extension_prompted: false,
-            start_while_info: true,
+            start_while_info: false,
             language: String::new(),
             window_sizes: Default::default(),
             main_maximized: false,
