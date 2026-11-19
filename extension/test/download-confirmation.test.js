@@ -13,7 +13,7 @@ assert(dialogStart >= 0 && dialogEnd > dialogStart, "download info dialog source
 const dialog = main.slice(dialogStart, dialogEnd);
 assert(!/early:\s*true/.test(dialog), "dialog must not create an early transfer");
 assert(!/ctx\.mgr\.add\s*\(/.test(dialog), "dialog must not add a transfer before Start");
-assert(dialog.includes("No network transfer starts while this dialog is open."), "explicit-start invariant comment missing");
+assert(dialog.includes("No file download starts while this dialog is open."), "explicit-start invariant comment missing");
 
 const clipboardStart = main.indexOf("// Clipboard monitoring only captures a link.");
 const refreshStart = main.indexOf("// ------------------------------------------------------------ refresh loops", clipboardStart);
