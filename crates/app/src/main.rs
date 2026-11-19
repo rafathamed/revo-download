@@ -2711,7 +2711,6 @@ pub(crate) fn open_add_dialog(ctx: &Ctx, url: String, headers: RequestHeaders, n
         return;
     }
     let Some(d) = ctx.add.upgrade() else { return };
-    let s = ctx.mgr.settings();
     if d.window().is_visible() {
         let mut st = ctx.add_state.lock_ok();
         // the same link again (a page can send it twice): nothing new to show;
