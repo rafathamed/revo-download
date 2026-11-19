@@ -2284,10 +2284,8 @@ export component SettingsDialog inherits ThemedWindow {
                         text: @tr("Watch the clipboard for download links");
                         checked <=> root.clipboard;
                     }
-                    CheckBox {
-                        text: @tr("Automatically start downloading links placed in the clipboard");
-                        checked <=> root.auto-clipboard;
-                        enabled: root.clipboard;
+                    Hint {
+                        text: @tr("Clipboard links are only detected here. REVO always asks you to confirm before transferring a file.");
                     }
                     CheckBox {
                         text: @tr("Draw the windows with the graphics card (uses more memory; after a restart)");
@@ -2526,13 +2524,8 @@ export component SettingsDialog inherits ThemedWindow {
                     padding: 14px;
                     spacing: 8px;
                     alignment: start;
-                    CheckBox {
-                        text: @tr("Show the \"Download File Info\" window for downloads from the browser");
-                        checked <=> root.show-start-dialog;
-                    }
-                    CheckBox {
-                        text: @tr("Start downloading immediately while showing \"Download File Info\"");
-                        checked <=> root.start-while-info;
+                    Hint {
+                        text: @tr("Browser and clipboard downloads always wait here. No data is transferred until you press Start.");
                     }
                     CheckBox {
                         text: @tr("Show the \"Download complete\" window");
