@@ -257,7 +257,7 @@ jobs:
           $yWant = ($ySumText -split "`n" | Where-Object { $_ -match "^([0-9a-fA-F]{64})\s+\*?yt-dlp\.exe\s*$" } | ForEach-Object { ($_ -split '\s+')[0] } | Select-Object -First 1)
           $yGot = (Get-FileHash "$p/tools/yt-dlp.exe" -Algorithm SHA256).Hash
           if (-not $yWant -or $yGot -ne $yWant.ToUpper()) { throw "yt-dlp.exe does not match its published SHA-256" }
-          choco install innosetup -y --no-progress
+          choco install innosetup --version=6.7.4 -y --no-progress
           & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /Q "/DMyAppVersion=$version" installer\revo.iss
           if ($LASTEXITCODE -ne 0) { throw "Inno Setup failed" }
           $hash = (Get-FileHash dist/REVO-Download-Setup.exe -Algorithm SHA256).Hash.ToLower()

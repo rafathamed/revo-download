@@ -18,6 +18,11 @@
 #endif
 
 [Setup]
+; REVO is a per-user installer (PrivilegesRequired=lowest) and launches the
+; app from [Run]. Inno Setup's RedirectionGuard is inherited by that child
+; in per-user mode and can block yt-dlp from scanning legitimate PATH junctions
+; with WinError 448. The installer writes only to this user's LocalAppData/HKCU.
+RedirectionGuard=no
 AppId={{EECCA9A3-FCA6-499D-9DAE-D39B5E2ED4ED}
 AppName={#MyAppName}
 AppVersion={#MyAppVersion}

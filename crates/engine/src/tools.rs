@@ -38,9 +38,15 @@ pub fn tool_dirs() -> Vec<PathBuf> {
 
 /// A folder of ours for the helpers' temporary files.
 pub fn work_dir() -> Option<PathBuf> {
-    let dir = directories::ProjectDirs::from("com", "RafatHamed", "REVO Download")?.data_dir().join("tmp");
+    let project = directories::ProjectDirs::from("com", "RafatHamed", "REVO Download")?;
+    // Prefer the per-user LOCAL cache, not roaming AppData or system TEMP.
+    // Either can be redirected through junctions that Windows may reject.
+    #[cfg(windows)]
+    let dir = project.cache_dir().join("tmp");
+    #[cfg(not(windows))]
+    let dir = project.data_dir().join("tmp");
     std::fs::create_dir_all(&dir).ok()?;
-    Some(dir)
+    std::fs::metadata(&dir).ok()?.is_dir().then_some(dir)
 }
 
 /// A tool shipped with the app (not one somewhere on PATH).

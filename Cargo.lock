@@ -5776,7 +5776,7 @@ dependencies = [
 
 [[package]]
 name = "revo-download"
-version = "1.0.14"
+version = "1.0.15"
 dependencies = [
  "anyhow",
  "arboard",
@@ -5802,7 +5802,7 @@ dependencies = [
 
 [[package]]
 name = "revo-engine"
-version = "1.0.14"
+version = "1.0.15"
 dependencies = [
  "aes",
  "anyhow",
@@ -5832,7 +5832,7 @@ dependencies = [
 
 [[package]]
 name = "revo-host"
-version = "1.0.14"
+version = "1.0.15"
 dependencies = [
  "ring",
  "serde_json",

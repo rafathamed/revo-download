@@ -18,7 +18,7 @@ integration for Chrome, Edge, Brave and Firefox.
 - Page link grabber, batch links, import/export lists and torrent support.
 - Arabic and English interface plus the other languages inherited from the upstream project.
 
-See [RELEASE-1.0.14.md](RELEASE-1.0.14.md) for the latest browser media-capture changes.
+See [RELEASE-1.0.15.md](RELEASE-1.0.15.md) for the latest video-grabber and Windows path-compatibility fixes.
 
 ## Technology
 

@@ -556,6 +556,41 @@ fn cookie_file(cookies: &[BrowserCookie]) -> anyhow::Result<std::path::PathBuf> 
     bail!("could not make a cookie file")
 }
 
+/// Keep yt-dlp's own executable directory, then the usable inherited PATH.
+/// Windows RedirectionGuard can make stat() fail with ERROR_UNTRUSTED_MOUNT_POINT
+/// (448) for a PATH junction. yt-dlp's Python runtime lookup walks PATH, so one
+/// blocked entry must not prevent the video grabber from resolving every site.
+fn filter_path_entries(
+    entries: impl IntoIterator<Item = std::path::PathBuf>,
+    mut is_blocked: impl FnMut(&Path) -> bool,
+) -> Vec<std::path::PathBuf> {
+    entries.into_iter().filter(|entry| !is_blocked(entry)).collect()
+}
+
+fn is_untrusted_mount_point(path: &Path) -> bool {
+    #[cfg(windows)]
+    {
+        matches!(std::fs::metadata(path), Err(e) if e.raw_os_error() == Some(448))
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = path;
+        false
+    }
+}
+
+fn yt_dlp_search_path(tool: &Path) -> Option<std::ffi::OsString> {
+    let mut entries = Vec::new();
+    if let Some(dir) = tool.parent() {
+        entries.push(dir.to_path_buf());
+    }
+    if let Some(inherited) = std::env::var_os("PATH") {
+        entries.extend(std::env::split_paths(&inherited));
+    }
+    let safe = filter_path_entries(entries, is_untrusted_mount_point);
+    std::env::join_paths(safe).ok()
+}
+
 /// yt-dlp, started so that its own temporary files go to our folder: on
 /// some computers the Windows temporary folder is on a drive Windows does
 /// not let programs walk through ("WinError 448 ... untrusted mount point").
@@ -563,6 +598,12 @@ fn ytdlp_command(tool: &Path) -> Command {
     let mut cmd = Command::new(tool);
     if let Some(dir) = crate::tools::work_dir() {
         cmd.env("TEMP", &dir).env("TMP", &dir).current_dir(&dir);
+    }
+    // The app may have been launched by Setup. Remove only PATH entries that
+    // Windows explicitly rejects with error 448; keep the remaining PATH
+    // order and put the bundled tools beside yt-dlp first.
+    if let Some(path) = yt_dlp_search_path(tool) {
+        cmd.env("PATH", path);
     }
     crate::http::with_proxy(&mut cmd);
     hide_window(&mut cmd);
@@ -1261,6 +1302,20 @@ mod tests {
         assert_eq!(h.user_agent.as_deref(), Some("Mozilla/5.0 test"));
         assert!(h.extra.iter().any(|(k, _)| k == "Sec-Fetch-Mode"));
         assert!(!h.extra.iter().any(|(k, _)| k == "Accept"));
+    }
+
+    #[test]
+    fn blocked_path_entries_do_not_abort_video_resolution() {
+        let entries = vec![
+            std::path::PathBuf::from("first-safe"),
+            std::path::PathBuf::from("blocked-junction"),
+            std::path::PathBuf::from("last-safe"),
+        ];
+        let actual = filter_path_entries(entries, |p| p == Path::new("blocked-junction"));
+        assert_eq!(actual, vec![
+            std::path::PathBuf::from("first-safe"),
+            std::path::PathBuf::from("last-safe"),
+        ]);
     }
 
     #[test]
