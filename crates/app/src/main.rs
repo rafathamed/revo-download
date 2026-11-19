@@ -619,13 +619,9 @@ fn run() -> anyhow::Result<()> {
             move |url| {
                 let ctx = ctx.clone();
                 let _ = slint::invoke_from_event_loop(move || {
-                    // a torrent always asks first (it also shares with others)
-                    if ctx.mgr.settings().auto_start_clipboard && !revo_engine::torrent::is_magnet(&url) {
-                        if ctx.mgr.find_url(&url).is_none() {
-                            ctx.mgr.add(NewDownload { url, start: true, ..Default::default() });
-                        }
-                        return;
-                    }
+                    // Clipboard monitoring only captures a link. It is never
+                    // permission to transfer: the user must confirm in Download
+                    // File Info and press Start (old auto-start settings are ignored).
                     let busy = ctx.add.upgrade().map(|d| d.window().is_visible()).unwrap_or(true);
                     if !busy {
                         open_add_dialog(&ctx, url, RequestHeaders::default(), None, VideoExtra::default());
@@ -1744,23 +1740,8 @@ fn handle_api(ui: &Ui, event: api::ApiEvent) {
                 source_page: req.source_page,
                 source_key: req.source_key,
             };
-            let s = ui.ctx.mgr.settings();
-            if !s.show_start_dialog && ui.ctx.mgr.find_url(&req.url).is_none() {
-                // straight to the list, without the "Download File Info" window
-                let id = ui.ctx.mgr.add(NewDownload {
-                    url: req.url,
-                    file_name: req.file_name,
-                    headers,
-                    audio_url: extra.audio_url,
-                    source_page: extra.source_page,
-                    source_key: extra.source_key,
-                    start: true,
-                    ..Default::default()
-                });
-                show_progress_for_start(ui, id);
-                refresh(ui);
-                return;
-            }
+            // Browser interception must never bypass the confirmation window,
+            // even when an older settings file disabled it.
             open_add_dialog(&ui.ctx, req.url, headers, req.file_name, extra);
         }
     }
@@ -2792,26 +2773,8 @@ pub(crate) fn open_add_dialog(ctx: &Ctx, url: String, headers: RequestHeaders, n
     d.set_info_error(false);
     d.set_probing(false);
     open_window!(d);
-    // it already downloads while the window is open
-    if !url.is_empty() && s.start_while_info && ctx.mgr.find_url(&url).is_none() {
-        let path = PathBuf::from(d.get_save_as().as_str());
-        let st = ctx.add_state.lock_ok();
-        let req = NewDownload {
-            url: url.clone(),
-            file_name: path.file_name().map(|n| n.to_string_lossy().into_owned()),
-            save_dir: path.parent().map(Path::to_path_buf),
-            headers: st.headers.clone(),
-            audio_url: st.extra.audio_url.clone(),
-            source_page: st.extra.source_page.clone(),
-            source_key: st.extra.source_key.clone(),
-            early: true,
-            start: true,
-            ..Default::default()
-        };
-        drop(st);
-        let id = ctx.mgr.add(req);
-        ctx.add_state.lock_ok().early_id = Some(id);
-    }
+    // No network transfer starts while this dialog is open. The only path
+    // that creates a running download is confirm_add(..., true) from Start.
     if !url.is_empty() {
         start_probe(ctx, url);
     }
