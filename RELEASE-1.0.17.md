@@ -3,7 +3,7 @@
 ## Download confirmation and safety
 
 - Browser-captured links always open the download information window, even when an older settings file had disabled it.
-- Removed the early background transfer that previously started while the information window was open. No file data is transferred until the user presses **Start**.
+- Removed the early background transfer that previously started while the information window was open. The actual file download starts only after the user presses **Start**.
 - Clipboard monitoring now detects and presents links for confirmation; it no longer starts transfers automatically.
 - Browser video clips are added as stopped items and wait for the user to start them from the main download list.
 - Removed contradictory automatic-start controls from Options and made old saved values migrate to the safe behavior.
