@@ -1,14 +1,8 @@
 # REVO Download 1.0.13
 
-This release strengthens browser video discovery across:
-- Direct media URLs, including extensionless responses and generic binary MIME types.
-- HLS/M3U8 and MPEG-DASH/MPD manifests discovered by browser network observation and page-world fetch/XHR hooks.
-- Dynamically assigned native video and audio sources.
-- Better separation of direct media files from MSE segment traffic to reduce false detections.
+This was the initial 1.0.13 media-detection update. It improved the extension's
+network-response handling for direct media, HLS/M3U8 and MPEG-DASH/MPD streams.
 
-DRM-protected streams remain detected as protected content and are not bypassed.
-
-
-Build validation: the release workflow runs browser-extension regression tests, Rust engine tests, dependency auditing, FFmpeg fixture checks, and Windows installer packaging before publishing.
-
-The document-start bridge forwards page-world detections immediately, so media requests made during initial page startup are retained before the UI content script loads.
+The broader page-world discovery bridge, extensionless MIME-based media capture,
+inherited-origin frame coverage, and fragmented-stream filtering are included
+in 1.0.14.

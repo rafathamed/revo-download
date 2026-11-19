@@ -23,8 +23,12 @@ class MockHeaders {
 
 // Both browser manifests must inject the isolated bridge and main-world
 // observer early, including frames whose origin is inherited (blob:/data:).
+const cargoToml = fs.readFileSync(path.join(__dirname, "..", "..", "Cargo.toml"), "utf8");
+const workspaceVersion = /^version = "([^"]+)"/m.exec(cargoToml)?.[1];
+assert(workspaceVersion, "workspace version is present");
 for (const manifestName of ["manifest.json", "manifest.firefox.json"]) {
   const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, "..", manifestName), "utf8"));
+  assert.strictEqual(manifest.version, workspaceVersion, manifestName + ": browser add-on version matches the desktop app");
   const early = manifest.content_scripts.find(x => x.js && x.js.includes("early.js"));
   const hook = manifest.content_scripts.find(x => x.js && x.js.includes("page-hook.js"));
   assert(early && early.run_at === "document_start" && early.all_frames && early.match_origin_as_fallback,

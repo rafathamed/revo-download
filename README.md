@@ -4,21 +4,21 @@
 
 Developed and maintained by **RAFAT HAMED**.
 
-REVO Download is a download manager with a Rust download engine and
-browser integration for Chrome, Edge, Brave and Firefox.
+REVO Download is a download manager with a Rust download engine and browser
+integration for Chrome, Edge, Brave and Firefox.
 
 ## Features
 
 - Segmented downloads using up to 32 simultaneous connections where the server allows it.
 - Pause and resume, including after closing or restarting Windows.
-- Browser integration for Chrome, Edge, Brave and Firefox (Firefox signing is required for normal distribution).
+- Browser integration for Chrome, Edge, Brave and Firefox.
 - Video and audio downloads with quality selection, playlists and FFmpeg merging.
-- Expanded browser media discovery for direct and extensionless media responses, HLS/M3U8, DASH/MPD, and dynamically assigned video sources.
+- Advanced browser media discovery for direct and extensionless media responses, HLS/M3U8, DASH/MPD, and dynamically assigned video sources.
 - Queue management, scheduling, speed limits and automatic file categorization.
 - Page link grabber, batch links, import/export lists and torrent support.
 - Arabic and English interface plus the other languages inherited from the upstream project.
 
-See [RELEASE-1.0.13.md](RELEASE-1.0.13.md) for the latest browser media-capture changes.
+See [RELEASE-1.0.14.md](RELEASE-1.0.14.md) for the latest browser media-capture changes.
 
 ## Technology
 
@@ -39,20 +39,19 @@ The first build downloads Rust build tools and helper dependencies. A Windows
 
 ## Release and automatic updates
 
-The update endpoint is configured for `rafathamed/revo-download`. Create that
-GitHub repository and push this source tree before publishing releases. The
-GitHub Actions workflow uses these repository secrets:
+The update endpoint is configured for `rafathamed/revo-download`. The
+GitHub Actions release workflow uses repository secrets:
 
-- `UPDATE_SIGNING_KEY`: the 64-character Ed25519 private seed supplied
-  separately with this handoff. Keep it secret and never commit it.
-- `AMO_JWT_ISSUER` and `AMO_JWT_SECRET`: Mozilla Add-ons signing credentials
-  for signed Firefox releases (optional for local builds, required by the
-  current release workflow when publishing a release).
+- `UPDATE_SIGNING_KEY`: the 64-character Ed25519 private seed used to sign
+  `version.json`. It is required for official releases. Keep it in GitHub
+  Actions secrets and never commit it.
+- `AMO_JWT_ISSUER` and `AMO_JWT_SECRET`: optional Mozilla Add-ons signing
+  credentials. Without them, the Windows installer can still be released,
+  but the Firefox XPI and Firefox update metadata are not produced.
 
-The public update key is embedded in `crates/engine/src/selfupdate.rs`. The
-private seed is not included in this source archive. Until the REVO GitHub
-repository and its release secrets are configured, in-app self-updates and
-Firefox add-on auto-update distribution are not yet operational.
+The public update key is embedded in `crates/engine/src/selfupdate.rs`.
+Installed copies verify the signed update manifest before accepting an update.
+The private signing seed is not included in the source tree.
 
 ## User data isolation
 
