@@ -989,6 +989,26 @@ fn wire_main(ui: &Ui) {
     }
     {
         let ui = ui.clone();
+        main.on_set_layout(move |layout| {
+            let mut s = ui.ctx.mgr.settings();
+            let layout = layout.clamp(0, 4);
+            s.workspace_style = layout as u32;
+            // Each supplied reference has its matching base palette. Users can
+            // still fine-tune the colour palette afterwards from View > Color palette.
+            s.theme = match layout {
+                1 => 1,  // Fluent dark
+                2 => 11, // Mica cards
+                3 => 5,  // Pro black
+                4 => 4,  // Compact teal/green
+                _ => 0,  // Fluent light
+            };
+            let theme = s.theme as i32;
+            let _ = ui.ctx.mgr.set_settings(s);
+            apply_theme(&ui, theme);
+        });
+    }
+    {
+        let ui = ui.clone();
         main.on_set_language(move |lang| {
             let mut s = ui.ctx.mgr.settings();
             s.language = lang.to_string();
@@ -2486,6 +2506,8 @@ pub(crate) const FONTS: [&str; 7] = ["", "Tahoma", "Arial", "Calibri", "Verdana"
 #[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Look {
     pub mode: i32,
+    /// selected full workspace layout
+    pub layout: i32,
     /// 0.8 ..= 1.5
     pub scale: f32,
     pub family: String,
@@ -2499,6 +2521,7 @@ impl Look {
     pub(crate) fn of(s: &Settings) -> Look {
         Look {
             mode: s.theme.min(12) as i32,
+            layout: s.workspace_style.min(4) as i32,
             scale: s.font_scale.clamp(80, 150) as f32 / 100.0,
             family: if FONTS.contains(&s.font_family.as_str()) { s.font_family.clone() } else { String::new() },
             background: s.background_image.clone(),
@@ -2538,6 +2561,7 @@ pub(crate) fn apply_theme(ui: &Ui, mode: i32) {
 fn set_theme_of(t: Theme<'_>, look: &Look) {
     t.set_rtl(i18n::is_rtl());
     t.set_mode(look.mode);
+    t.set_layout(look.layout);
     t.set_font_scale(look.scale);
     t.set_font_family(look.family.clone().into());
 }
@@ -2658,6 +2682,7 @@ pub(crate) fn apply_view_settings(ui: &Ui, s: &Settings) {
             s.column_layout().into_iter().map(|(key, w)| ColDef { key: key.into(), width: w as f32 }).collect();
         ui.columns_model.set_vec(defs);
         m.set_toolbar_small(s.toolbar_small);
+        m.set_download_dir(s.download_dir.display().to_string().into());
     }
 }
 
@@ -2724,6 +2749,8 @@ pub(crate) fn open_add_dialog(ctx: &Ctx, url: String, headers: RequestHeaders, n
     }
     // nothing may be left over from an earlier window
     cancel_early(ctx);
+    // Re-read settings for category defaults, credentials and connection limits.
+    let s = ctx.mgr.settings();
     // General first, like the classic list
     let mut cats = vec!["General".to_string()];
     cats.extend(s.categories.iter().map(|c| c.name.clone()));

@@ -190,10 +190,10 @@ Type: filesandordirs; Name: "{app}\extension-firefox"
 Type: files; Name: "{app}\revo-download-firefox.xpi"
 
 [Icons]
-Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExe}"
+Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExe}"; IconFilename: "{app}\{#MyAppExe}"; IconIndex: 0
 Name: "{group}\Browser extension folder"; Filename: "{app}\extension"
 Name: "{group}\Uninstall {#MyAppName}"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExe}"; Tasks: desktopicon
+Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExe}"; Tasks: desktopicon; IconFilename: "{app}\{#MyAppExe}"; IconIndex: 0
 
 [Registry]
 ; tells the app the installer already decided about "start with Windows"
