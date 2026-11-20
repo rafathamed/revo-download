@@ -732,13 +732,14 @@ component SelectionInspector inherits Rectangle {
             height: 1px;
             background: Theme.line;
         }
-        if root.selected-id < 0: Text {
+        if root.selected-id == -1: Text {
             text: @tr("Select a download to inspect its details.");
             color: Theme.muted;
             wrap: word-wrap;
             font-size: 11px * Theme.font-scale;
         }
-        for r in root.rows: if r.id == root.selected-id: VerticalLayout {
+        for r in root.rows: VerticalLayout {
+            visible: r.id == root.selected-id;
             spacing: 8px;
             HRow {
                 spacing: 8px;
@@ -2236,7 +2237,8 @@ export component MainWindow inherits ThemedWindow {
                                     flex-wrap: wrap;
                                     spacing: 8px;
                                     alignment: start;
-                                    for r in root.rows: if r.state != 3: DashboardCard {
+                                    for r in root.rows: DashboardCard {
+                                        visible: r.state != 3;
                                         width: max(220px, (parent.width - 16px) / 3);
                                         data: r;
                                         selected: r.sel;
@@ -2268,7 +2270,8 @@ export component MainWindow inherits ThemedWindow {
                                 }
                                 VerticalLayout {
                                     spacing: 5px;
-                                    for r in root.rows: if r.state == 3: DashboardCard {
+                                    for r in root.rows: DashboardCard {
+                                        visible: r.state == 3;
                                         width: parent.width;
                                         data: r;
                                         selected: r.sel;
