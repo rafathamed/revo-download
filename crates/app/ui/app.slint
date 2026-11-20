@@ -2227,62 +2227,73 @@ export component MainWindow inherits ThemedWindow {
                             init => {
                                 self.content-x = self.rtl-start;
                             }
-                            for r in root.rows: DashboardCard {
-                                visible: Theme.layout == 2 && root.mica-cards;
-                                width: lv.visible-width;
-                                data: r;
-                                mica-cards: root.mica-cards;
-                                selected: r.sel;
-                                compact: r.state == 3;
-                                pick => {
-                                    root.row-clicked(r.id, false, false);
-                                    keys.focus();
+                            for r in root.rows: Rectangle {
+                                // One ListView delegate per download. The visible child
+                                // switches between Mica cards and the full column row.
+                                width: max(lv.visible-width, row-item.content-w);
+                                height: Theme.layout == 2 && root.mica-cards
+                                    ? (r.state == 3 ? 54px : 126px)
+                                    : row-item.height;
+                                background: transparent;
+                                card := DashboardCard {
+                                    x: 0px;
+                                    y: 0px;
+                                    visible: Theme.layout == 2 && root.mica-cards;
+                                    width: lv.visible-width;
+                                    data: r;
+                                    mica-cards: root.mica-cards;
+                                    selected: r.sel;
+                                    compact: r.state == 3;
+                                    pick => {
+                                        root.row-clicked(r.id, false, false);
+                                        keys.focus();
+                                    }
+                                    activated => { root.row-activated(r.id); }
+                                    pause => { root.pause(r.id); }
+                                    resume => { root.resume(r.id); }
+                                    action(a) => { root.row-action(r.id, a); }
                                 }
-                                activated => { root.row-activated(r.id); }
-                                pause => { root.pause(r.id); }
-                                resume => { root.resume(r.id); }
-                                action(a) => { root.row-action(r.id, a); }
+                                row-item := DownloadItem {
+                                    x: 0px;
+                                    y: 0px;
+                                    visible: Theme.layout != 2 || !root.mica-cards;
+                                    width: parent.width;
+                                    data: r;
+                                    mica-cards: root.mica-cards;
+                                    queues: root.queues;
+                                    cols: root.cols;
+                                    columns: root.columns;
+                                    selected: r.sel;
+                                    sel-count: root.sel-count;
+                                    native-menu: root.native-menu;
+                                    open-native-menu => {
+                                        root.row-menu(r.id);
+                                    }
+                                    pick(ctrl, shift) => {
+                                        root.row-clicked(r.id, ctrl, shift);
+                                        keys.focus();
+                                    }
+                                    right-pick => {
+                                        root.row-right(r.id);
+                                    }
+                                    drag(offset) => {
+                                        root.row-drag(r.id, offset);
+                                    }
+                                    drag-out => {
+                                        root.row-drag-out(r.id);
+                                    }
+                                    activated => {
+                                        root.row-activated(r.id);
+                                    }
+                                    action(a) => {
+                                        root.row-action(r.id, a);
+                                    }
+                                    move-to-queue(q) => {
+                                        root.row-to-queue(r.id, q);
+                                    }
+                                }
                             }
-                            for r in root.rows: DownloadItem {
-                                visible: Theme.layout != 2 || !root.mica-cards;
-                                // every row as wide as its columns: the mouse and
-                                // the highlight reach the name in Arabic too
-                                width: max(lv.visible-width, self.content-w);
-                                data: r;
-                                mica-cards: root.mica-cards;
-                                queues: root.queues;
-                                cols: root.cols;
-                                columns: root.columns;
-                                selected: r.sel;
-                                sel-count: root.sel-count;
-                                native-menu: root.native-menu;
-                                open-native-menu => {
-                                    root.row-menu(r.id);
-                                }
-                                pick(ctrl, shift) => {
-                                    root.row-clicked(r.id, ctrl, shift);
-                                    keys.focus();
-                                }
-                                right-pick => {
-                                    root.row-right(r.id);
-                                }
-                                drag(offset) => {
-                                    root.row-drag(r.id, offset);
-                                }
-                                drag-out => {
-                                    root.row-drag-out(r.id);
-                                }
-                                activated => {
-                                    root.row-activated(r.id);
-                                }
-                                action(a) => {
-                                    root.row-action(r.id, a);
-                                }
-                                move-to-queue(q) => {
-                                    root.row-to-queue(r.id, q);
-                                }
-                            }
-                        }
+ }
                     if root.rows.length == 0: Text {
                         x: 0;
                         y: 120px;
