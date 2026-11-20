@@ -2682,6 +2682,7 @@ pub(crate) fn apply_view_settings(ui: &Ui, s: &Settings) {
             s.column_layout().into_iter().map(|(key, w)| ColDef { key: key.into(), width: w as f32 }).collect();
         ui.columns_model.set_vec(defs);
         m.set_toolbar_small(s.toolbar_small);
+        m.set_download_dir(s.download_dir.display().to_string().into());
     }
 }
 

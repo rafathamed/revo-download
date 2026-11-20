@@ -565,6 +565,121 @@ component CtxTreeItem inherits TreeItem {
     }
 }
 
+component ProDetailsPanel inherits Rectangle {
+    in property <[DownloadRow]> rows;
+    in property <int> selected-id: -1;
+    callback pause(int);
+    callback resume(int);
+    callback action(int, string);
+    height: 166px;
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.line;
+    VerticalLayout {
+        padding: 9px;
+        spacing: 7px;
+        HRow {
+            height: 20px;
+            Text {
+                text: @tr("Download details");
+                color: Theme.text;
+                font-size: 12px * Theme.font-scale;
+                font-weight: 700;
+                vertical-alignment: center;
+            }
+            Rectangle { horizontal-stretch: 1; }
+            Text {
+                text: @tr("Live information");
+                color: Theme.accent;
+                font-size: 10px * Theme.font-scale;
+                vertical-alignment: center;
+            }
+        }
+        Rectangle { height: 1px; background: Theme.line; }
+        if root.selected-id == -1: Text {
+            text: @tr("Select a download to view its details.");
+            color: Theme.muted;
+            vertical-alignment: center;
+        }
+        for r in root.rows: HRow {
+            visible: r.id == root.selected-id;
+            vertical-stretch: 1;
+            spacing: 12px;
+            VerticalLayout {
+                width: 270px;
+                spacing: 5px;
+                Text {
+                    text: r.name;
+                    color: Theme.text;
+                    font-size: 12px * Theme.font-scale;
+                    font-weight: 700;
+                    wrap: word-wrap;
+                    overflow: elide;
+                }
+                Text {
+                    text: r.category + "  ·  " + r.size;
+                    color: Theme.muted;
+                    font-size: 10px * Theme.font-scale;
+                }
+                Text {
+                    text: r.save-to;
+                    color: Theme.muted;
+                    font-size: 9px * Theme.font-scale;
+                    wrap: word-wrap;
+                    overflow: elide;
+                }
+            }
+            VerticalLayout {
+                horizontal-stretch: 1;
+                spacing: 6px;
+                HRow {
+                    Text { text: @tr("Progress"); color: Theme.muted; font-size: 10px * Theme.font-scale; }
+                    Rectangle { horizontal-stretch: 1; }
+                    Text { text: "" + round(r.progress * 100) + "%"; color: Theme.accent; font-size: 11px * Theme.font-scale; font-weight: 700; }
+                }
+                Rectangle {
+                    height: 8px;
+                    border-radius: 4px;
+                    background: Theme.bar-bg;
+                    Rectangle {
+                        width: parent.width * min(1.0, max(0.0, r.progress));
+                        height: parent.height;
+                        border-radius: 4px;
+                        background: r.state == 4 ? Theme.err : Theme.accent;
+                    }
+                }
+                HRow {
+                    Text { text: @tr("Transfer rate") + ": " + r.speed; color: Theme.text; font-size: 10px * Theme.font-scale; }
+                    Rectangle { horizontal-stretch: 1; }
+                    Text { text: @tr("Time left") + ": " + r.eta; color: Theme.muted; font-size: 10px * Theme.font-scale; }
+                }
+            }
+            VerticalLayout {
+                width: 170px;
+                spacing: 4px;
+                Text {
+                    text: r.status;
+                    color: r.state == 3 ? Theme.ok : r.state == 4 ? Theme.err : Theme.accent;
+                    font-size: 11px * Theme.font-scale;
+                    font-weight: 700;
+                }
+                if r.state == 1: Button {
+                    text: @tr("Pause");
+                    clicked => { root.pause(r.id); }
+                }
+                if r.state == 0 || r.state == 2 || r.state == 4: Button {
+                    text: @tr("Resume");
+                    clicked => { root.resume(r.id); }
+                }
+                Button {
+                    text: @tr("Properties");
+                    clicked => { root.action(r.id, "properties"); }
+                }
+            }
+        }
+    }
+}
+
 component DashboardCard inherits Rectangle {
     in property <DownloadRow> data;
     in property <bool> selected: false;
@@ -858,6 +973,7 @@ export component MainWindow inherits ThemedWindow {
     in-out property <string> view: "all";
     in-out property <string> search;
     in property <string> status-text;
+    in property <string> download-dir;
     in property <string> limiter-text;
     in property <int> selected-state: -1;
     // multiple selection: how many, and whether any can be resumed / stopped
@@ -878,6 +994,8 @@ export component MainWindow inherits ThemedWindow {
     in-out property <bool> open-unf: false;
     in-out property <bool> open-fin: false;
     in-out property <bool> open-queues: true;
+    // Mica workspace can switch between its card dashboard and the standard list.
+    in-out property <bool> mica-cards: true;
 
     callback add-url();
     callback add-batch();
@@ -2009,6 +2127,40 @@ export component MainWindow inherits ThemedWindow {
                     border-color: Theme.line;
                     VerticalLayout {
                         padding: 1px;
+                        if Theme.layout == 2: HRow {
+                            height: 34px;
+                            padding-left: 9px;
+                            padding-right: 9px;
+                            spacing: 5px;
+                            Text {
+                                text: @tr("All downloads");
+                                color: Theme.text;
+                                font-size: 14px * Theme.font-scale;
+                                font-weight: 700;
+                                vertical-alignment: center;
+                            }
+                            Rectangle { horizontal-stretch: 1; }
+                            Button {
+                                text: root.mica-cards ? "▦  " + @tr("Cards") : @tr("Cards");
+                                clicked => { root.mica-cards = true; }
+                            }
+                            Button {
+                                text: !root.mica-cards ? "☷  " + @tr("List") : @tr("List");
+                                clicked => { root.mica-cards = false; }
+                            }
+                            Button {
+                                text: root.view == "all" ? "● " + @tr("All") : @tr("All");
+                                clicked => { root.view = "all"; root.view-changed(root.view); }
+                            }
+                            Button {
+                                text: root.view == "unfinished" ? "● " + @tr("In progress") : @tr("In progress");
+                                clicked => { root.view = "unfinished"; root.view-changed(root.view); }
+                            }
+                            Button {
+                                text: root.view == "finished" ? "● " + @tr("Completed") : @tr("Completed");
+                                clicked => { root.view = "finished"; root.view-changed(root.view); }
+                            }
+                        }
                         if Theme.layout != 2: HRow {
                             height: 36px;
                             padding-left: 10px;
@@ -2030,7 +2182,8 @@ export component MainWindow inherits ThemedWindow {
                             }
                         }
                         Rectangle {
-                            height: Theme.layout == 2 ? 0px : 24px;
+                            visible: Theme.layout != 2 || !root.mica-cards;
+                            height: Theme.layout == 2 && root.mica-cards ? 0px : 24px;
                             background: @linear-gradient(180deg, Theme.header-top 0%, Theme.header-bottom 100%);
                             clip: true;
                             // scrolls sideways together with the list (wide columns)
@@ -2078,8 +2231,8 @@ export component MainWindow inherits ThemedWindow {
                             }
                         }
                         lv := ListView {
-                            visible: Theme.layout != 2;
-                            vertical-stretch: Theme.layout == 2 ? 0 : 1;
+                            visible: Theme.layout != 2 || !root.mica-cards;
+                            vertical-stretch: 1;
                             // Arabic: wide columns start at the right edge, so
                             // the list first shows its right side
                             property <length> rtl-start: Theme.rtl ? min(0px, self.visible-width - self.content-width) : 0px;
@@ -2128,6 +2281,7 @@ export component MainWindow inherits ThemedWindow {
                             }
                         }
                         if Theme.layout == 2: Flickable {
+                            visible: root.mica-cards;
                             vertical-stretch: 1;
                             VerticalLayout {
                                 width: parent.width;
@@ -2213,7 +2367,7 @@ export component MainWindow inherits ThemedWindow {
                         color: Theme.muted;
                     }
                 }
-                if Theme.layout == 1 || Theme.layout == 3: SelectionInspector {
+                if Theme.layout == 1: SelectionInspector {
                     rows: root.rows;
                     selected-id: root.selected-id;
                     pro: Theme.layout == 3;
@@ -2223,8 +2377,16 @@ export component MainWindow inherits ThemedWindow {
                 }
             }
 
+            if Theme.layout == 3: ProDetailsPanel {
+                rows: root.rows;
+                selected-id: root.selected-id;
+                pause(id) => { root.pause(id); }
+                resume(id) => { root.resume(id); }
+                action(id, a) => { root.row-action(id, a); }
+            }
+
             if Theme.layout == 3: HRow {
-                height: 62px;
+                height: 0px;
                 padding: 6px;
                 spacing: 8px;
                 MetricTile {
@@ -2250,29 +2412,45 @@ export component MainWindow inherits ThemedWindow {
                 }
             }
             if Theme.layout == 4: HRow {
-                height: 52px;
+                height: 92px;
                 padding: 5px;
-                spacing: 6px;
+                spacing: 7px;
+                Rectangle {
+                    horizontal-stretch: 1;
+                    background: Theme.panel;
+                    border-width: 1px;
+                    border-color: Theme.line;
+                    border-radius: 7px;
+                    VerticalLayout {
+                        padding: 8px;
+                        spacing: 4px;
+                        Text { text: @tr("Download queues"); color: Theme.muted; font-size: 10px * Theme.font-scale; }
+                        for q in root.queues: HRow {
+                            visible: q.id == root.current-queue;
+                            Text { text: q.name; color: Theme.text; font-size: 12px * Theme.font-scale; font-weight: 700; }
+                            Rectangle { horizontal-stretch: 1; }
+                            Text { text: "" + q.count + "  ·  " + (q.running ? @tr("Running") : @tr("Waiting")); color: Theme.accent; font-size: 10px * Theme.font-scale; }
+                        }
+                        HRow {
+                            spacing: 5px;
+                            Button { text: @tr("New queue"); clicked => { root.new-queue(); } }
+                            Button { text: @tr("Edit"); clicked => { root.edit-queue(root.current-queue); } }
+                        }
+                    }
+                }
                 MetricTile {
                     horizontal-stretch: 1;
-                    label: @tr("Total");
-                    value: root.count-all;
-                    detail: @tr("Downloads");
+                    label: @tr("Download folder");
+                    value: root.download-dir;
+                    detail: @tr("Save location for downloads");
                     stripe: Theme.accent;
                 }
                 MetricTile {
                     horizontal-stretch: 1;
-                    label: @tr("Completed");
-                    value: root.count-finished;
-                    detail: @tr("Files");
-                    stripe: Theme.ok;
-                }
-                MetricTile {
-                    horizontal-stretch: 2;
-                    label: @tr("Current status");
+                    label: @tr("Total transfer speed");
                     value: root.status-text;
                     detail: root.limiter-text;
-                    stripe: Theme.accent;
+                    stripe: Theme.ok;
                 }
             }
 

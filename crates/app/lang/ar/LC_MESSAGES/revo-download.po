@@ -1132,3 +1132,42 @@ msgstr "قيد التنفيذ"
 
 msgid "Workspace appearance…"
 msgstr "مظهر مساحة العمل…"
+
+msgid "Download details"
+msgstr "تفاصيل التنزيل"
+
+msgid "Live information"
+msgstr "معلومات مباشرة"
+
+msgid "Select a download to view its details."
+msgstr "اختر تنزيلًا لعرض تفاصيله."
+
+msgid "Progress"
+msgstr "التقدم"
+
+msgid "Cards"
+msgstr "بطاقات"
+
+msgid "List"
+msgstr "قائمة"
+
+msgid "All"
+msgstr "الكل"
+
+msgid "Download queues"
+msgstr "قوائم الانتظار"
+
+msgid "Running"
+msgstr "قيد التشغيل"
+
+msgid "Waiting"
+msgstr "في الانتظار"
+
+msgid "Download folder"
+msgstr "مجلد التنزيل"
+
+msgid "Save location for downloads"
+msgstr "مسار حفظ الملفات"
+
+msgid "Total transfer speed"
+msgstr "إجمالي سرعة النقل"
