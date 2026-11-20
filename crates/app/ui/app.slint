@@ -664,6 +664,7 @@ component ProDetailsPanel inherits Rectangle {
 
 component DashboardCard inherits Rectangle {
     in property <DownloadRow> data;
+    in property <bool> mica-cards: false;
     in property <bool> selected: false;
     in property <bool> compact: false;
     callback pick();
@@ -2225,6 +2226,7 @@ export component MainWindow inherits ThemedWindow {
                                 visible: Theme.layout == 2 && root.mica-cards;
                                 width: lv.visible-width;
                                 data: r;
+                                mica-cards: root.mica-cards;
                                 selected: r.sel;
                                 compact: r.state == 3;
                                 pick => {
