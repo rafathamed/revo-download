@@ -1045,3 +1045,87 @@ msgid "What's new in REVO Download"
 msgstr "الجديد في REVO Download"
 msgid "Hide"
 msgstr "إخفاء"
+
+msgid "Workspace layout"
+msgstr "نمط الواجهة"
+
+msgid "Fluent Light"
+msgstr "Fluent الفاتح"
+
+msgid "Fluent Dark Inspector"
+msgstr "Fluent الداكن مع لوحة التفاصيل"
+
+msgid "Mica Cards Dashboard"
+msgstr "لوحة Mica بالبطاقات"
+
+msgid "Pro Workspace"
+msgstr "مساحة العمل الاحترافية"
+
+msgid "Compact Teal"
+msgstr "الواجهة المدمجة باللون الفيروزي"
+
+msgid "Color palette"
+msgstr "لوحة الألوان"
+
+msgid "Total downloads"
+msgstr "إجمالي التنزيلات"
+
+msgid "In progress"
+msgstr "قيد التنزيل"
+
+msgid "Completed"
+msgstr "مكتملة"
+
+msgid "All files in the list"
+msgstr "كل الملفات في القائمة"
+
+msgid "Active and waiting"
+msgstr "النشطة وقيد الانتظار"
+
+msgid "Successfully downloaded"
+msgstr "تم تنزيلها بنجاح"
+
+msgid "Transfer status"
+msgstr "حالة النقل"
+
+msgid "Download inspector"
+msgstr "تفاصيل التنزيل"
+
+msgid "Pro workspace inspector"
+msgstr "لوحة تفاصيل مساحة العمل الاحترافية"
+
+msgid "Select a download to inspect its details."
+msgstr "اختر تنزيلًا لعرض تفاصيله."
+
+msgid "File size"
+msgstr "حجم الملف"
+
+msgid "Save location"
+msgstr "مسار الحفظ"
+
+msgid "Unfinished downloads"
+msgstr "التنزيلات غير المكتملة"
+
+msgid "Current workload"
+msgstr "التحميل الحالي"
+
+msgid "Completed downloads"
+msgstr "التنزيلات المكتملة"
+
+msgid "Finished successfully"
+msgstr "اكتملت بنجاح"
+
+msgid "Total"
+msgstr "الإجمالي"
+
+msgid "Downloads"
+msgstr "التنزيلات"
+
+msgid "Files"
+msgstr "ملفات"
+
+msgid "Current status"
+msgstr "الحالة الحالية"
+
+msgid "in progress"
+msgstr "قيد التنفيذ"

@@ -34,7 +34,7 @@ component DownloadItem inherits Rectangle {
     // dragging a finished file out of the program (onto the desktop, a folder…)
     callback drag-out();
     property <bool> dragged-out;
-    height: Theme.depth ? max(40px, 34px * Theme.font-scale) : max(24px, 24px * Theme.font-scale);
+    height: Theme.layout == 4 ? max(22px, 22px * Theme.font-scale) : Theme.depth ? max(40px, 34px * Theme.font-scale) : max(24px, 24px * Theme.font-scale);
     // as wide as all the columns (the list then scrolls sideways)
     out property <length> content-w: cells.min-width;
     // wide columns: the row is wider than the list. The look and the mouse
@@ -565,6 +565,171 @@ component CtxTreeItem inherits TreeItem {
     }
 }
 
+component MetricTile inherits Rectangle {
+    in property <string> label;
+    in property <string> value;
+    in property <string> detail;
+    in property <color> stripe: Theme.accent;
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.line;
+    border-radius: Theme.layout == 2 ? 11px : 5px;
+    Rectangle {
+        x: 0;
+        y: 0;
+        width: 3px;
+        height: parent.height;
+        background: root.stripe;
+        border-radius: 2px;
+    }
+    VerticalLayout {
+        padding: 8px;
+        padding-left: 12px;
+        spacing: 2px;
+        Text {
+            text: root.label;
+            color: Theme.muted;
+            font-size: 10px * Theme.font-scale;
+            vertical-alignment: center;
+        }
+        Text {
+            text: root.value;
+            color: Theme.text;
+            font-size: 17px * Theme.font-scale;
+            font-weight: 700;
+            vertical-alignment: center;
+        }
+        Text {
+            text: root.detail;
+            color: root.stripe;
+            font-size: 10px * Theme.font-scale;
+            vertical-alignment: center;
+        }
+    }
+}
+
+component SelectionInspector inherits Rectangle {
+    in property <[DownloadRow]> rows;
+    in property <int> selected-id: -1;
+    in property <bool> pro: false;
+    callback pause(int);
+    callback resume(int);
+    callback action(int, string);
+    width: root.pro ? 232px : 208px;
+    background: Theme.panel;
+    border-width: 1px;
+    border-color: Theme.line;
+    VerticalLayout {
+        padding: 10px;
+        spacing: 8px;
+        Text {
+            text: root.pro ? @tr("Pro workspace inspector") : @tr("Download inspector");
+            color: Theme.text;
+            font-size: 13px * Theme.font-scale;
+            font-weight: 700;
+        }
+        Rectangle {
+            width: parent.width;
+            height: 1px;
+            background: Theme.line;
+        }
+        if root.selected-id < 0: Text {
+            text: @tr("Select a download to inspect its details.");
+            color: Theme.muted;
+            wrap: word-wrap;
+            font-size: 11px * Theme.font-scale;
+        }
+        for r in root.rows: if r.id == root.selected-id: VerticalLayout {
+            spacing: 8px;
+            HRow {
+                spacing: 8px;
+                TypeIcon {
+                    kind: r.kind;
+                    width: 42px;
+                    height: 42px;
+                }
+                VerticalLayout {
+                    vertical-stretch: 1;
+                    alignment: center;
+                    Text {
+                        text: r.name;
+                        color: Theme.text;
+                        font-size: 12px * Theme.font-scale;
+                        font-weight: 700;
+                        wrap: word-wrap;
+                    }
+                    Text {
+                        text: r.status;
+                        color: r.state == 3 ? Theme.ok : r.state == 4 ? Theme.err : Theme.accent;
+                        font-size: 10px * Theme.font-scale;
+                    }
+                }
+            }
+            Rectangle {
+                width: parent.width;
+                height: 7px;
+                border-radius: 4px;
+                background: Theme.bar-bg;
+                Rectangle {
+                    width: parent.width * min(1.0, max(0.0, r.progress));
+                    height: parent.height;
+                    border-radius: 4px;
+                    background: Theme.accent;
+                }
+            }
+            HRow {
+                Text { text: @tr("File size"); color: Theme.muted; font-size: 10px * Theme.font-scale; horizontal-stretch: 1; }
+                Text { text: r.size; color: Theme.text; font-size: 10px * Theme.font-scale; }
+            }
+            HRow {
+                Text { text: @tr("Transfer rate"); color: Theme.muted; font-size: 10px * Theme.font-scale; horizontal-stretch: 1; }
+                Text { text: r.speed; color: Theme.accent; font-size: 10px * Theme.font-scale; }
+            }
+            HRow {
+                Text { text: @tr("Time left"); color: Theme.muted; font-size: 10px * Theme.font-scale; horizontal-stretch: 1; }
+                Text { text: r.eta; color: Theme.text; font-size: 10px * Theme.font-scale; }
+            }
+            if root.pro: VerticalLayout {
+                spacing: 4px;
+                Text {
+                    text: @tr("Save location");
+                    color: Theme.muted;
+                    font-size: 10px * Theme.font-scale;
+                }
+                Text {
+                    text: r.save-to;
+                    color: Theme.text;
+                    font-size: 10px * Theme.font-scale;
+                    wrap: word-wrap;
+                }
+                Text {
+                    text: r.description;
+                    color: Theme.muted;
+                    font-size: 10px * Theme.font-scale;
+                    wrap: word-wrap;
+                }
+            }
+            if r.state == 1: Button {
+                text: @tr("Pause");
+                clicked => { root.pause(r.id); }
+            }
+            if r.state == 0 || r.state == 2 || r.state == 4: Button {
+                text: @tr("Resume");
+                clicked => { root.resume(r.id); }
+            }
+            Button {
+                text: @tr("Open folder");
+                clicked => { root.action(r.id, "folder"); }
+            }
+            Button {
+                text: @tr("Properties");
+                clicked => { root.action(r.id, "properties"); }
+            }
+        }
+    }
+}
+
+// ------------------------------------------------------------------ main window
 export component MainWindow inherits ThemedWindow {
     // set for a moment so the window comes in front of the browser
     in property <bool> front;
@@ -678,6 +843,7 @@ export component MainWindow inherits ThemedWindow {
     callback export-list(string);
     callback import-list(string);
     callback set-theme(int);
+    callback set-layout(int);
     callback set-language(string);
     callback toggle-categories();
     callback set-toolbar-small(bool);
@@ -1113,7 +1279,30 @@ export component MainWindow inherits ThemedWindow {
                 }
             }
             Menu {
-                title: @tr("Theme");
+                title: @tr("Workspace layout");
+                MenuItem {
+                    title: (Theme.layout == 0 ? "● " : "○ ") + @tr("Fluent Light");
+                    activated => { root.set-layout(0); }
+                }
+                MenuItem {
+                    title: (Theme.layout == 1 ? "● " : "○ ") + @tr("Fluent Dark Inspector");
+                    activated => { root.set-layout(1); }
+                }
+                MenuItem {
+                    title: (Theme.layout == 2 ? "● " : "○ ") + @tr("Mica Cards Dashboard");
+                    activated => { root.set-layout(2); }
+                }
+                MenuItem {
+                    title: (Theme.layout == 3 ? "● " : "○ ") + @tr("Pro Workspace");
+                    activated => { root.set-layout(3); }
+                }
+                MenuItem {
+                    title: (Theme.layout == 4 ? "● " : "○ ") + @tr("Compact Teal");
+                    activated => { root.set-layout(4); }
+                }
+            }
+            Menu {
+                title: @tr("Color palette");
                 MenuItem {
                     title: (Theme.mode == 0 ? "● " : "○ ") + @tr("Light");
                     activated => {
@@ -1405,7 +1594,7 @@ export component MainWindow inherits ThemedWindow {
                 property <length> small-need: 15 * 34px + 5 * 7px + 14px + 96px + 16px;
                 // only with bigger text (at the usual size the last buttons
                 // are cut in a narrow window, as before)
-                property <bool> small-now: root.toolbar-small || (Theme.font-scale > 1.05 && self.width < self.full-need);
+                property <bool> small-now: root.toolbar-small || Theme.layout == 4 || (Theme.font-scale > 1.05 && self.width < self.full-need);
                 // bigger text (Options > Appearance): a taller bar, the names are never cut
                 height: tb.small-now ? 42px : max(64px, 38px + 26px * Theme.font-scale);
                 min-width: 0px;
@@ -1576,13 +1765,47 @@ export component MainWindow inherits ThemedWindow {
                 }
             }
 
+            if Theme.layout == 2: HRow {
+                height: 78px;
+                padding: 6px;
+                spacing: 8px;
+                MetricTile {
+                    horizontal-stretch: 1;
+                    label: @tr("Total downloads");
+                    value: root.count-all;
+                    detail: @tr("All files in the list");
+                    stripe: Theme.accent;
+                }
+                MetricTile {
+                    horizontal-stretch: 1;
+                    label: @tr("In progress");
+                    value: root.count-unfinished;
+                    detail: @tr("Active and waiting");
+                    stripe: Theme.warn;
+                }
+                MetricTile {
+                    horizontal-stretch: 1;
+                    label: @tr("Completed");
+                    value: root.count-finished;
+                    detail: @tr("Successfully downloaded");
+                    stripe: Theme.ok;
+                }
+                MetricTile {
+                    horizontal-stretch: 1;
+                    label: @tr("Transfer status");
+                    value: root.status-text;
+                    detail: root.limiter-text;
+                    stripe: Theme.accent;
+                }
+            }
+
             HRow {
                 vertical-stretch: 1;
                 padding: 4px;
                 spacing: 4px;
                 // ---- tree
                 if !root.hide-categories: Rectangle {
-                    width: 210px;
+                    width: Theme.layout == 4 ? 168px : Theme.layout == 1 ? 190px : 210px;
                     background: Theme.panel;
                     border-width: 1px;
                     border-color: Theme.line;
@@ -1768,6 +1991,26 @@ export component MainWindow inherits ThemedWindow {
                     border-color: Theme.line;
                     VerticalLayout {
                         padding: 1px;
+                        if Theme.layout != 2: HRow {
+                            height: 36px;
+                            padding-left: 10px;
+                            padding-right: 10px;
+                            spacing: 8px;
+                            Text {
+                                text: root.view == "all" ? @tr("All downloads") : root.view == "unfinished" ? @tr("Unfinished") : root.view == "finished" ? @tr("Finished") : @tr("Downloads");
+                                color: Theme.text;
+                                font-size: 14px * Theme.font-scale;
+                                font-weight: 700;
+                                vertical-alignment: center;
+                            }
+                            Rectangle { horizontal-stretch: 1; }
+                            Text {
+                                text: root.count-all + "  ·  " + root.count-unfinished + " " + @tr("in progress");
+                                color: Theme.muted;
+                                font-size: 10px * Theme.font-scale;
+                                vertical-alignment: center;
+                            }
+                        }
                         Rectangle {
                             height: 24px;
                             background: @linear-gradient(180deg, Theme.header-top 0%, Theme.header-bottom 100%);
@@ -1874,6 +2117,68 @@ export component MainWindow inherits ThemedWindow {
                         horizontal-alignment: center;
                         color: Theme.muted;
                     }
+                }
+            }
+                if Theme.layout == 1 || Theme.layout == 3: SelectionInspector {
+                    rows: root.rows;
+                    selected-id: root.selected-id;
+                    pro: Theme.layout == 3;
+                    pause(id) => { root.pause(id); }
+                    resume(id) => { root.resume(id); }
+                    action(id, a) => { root.row-action(id, a); }
+                }
+            }
+
+            if Theme.layout == 3: HRow {
+                height: 62px;
+                padding: 6px;
+                spacing: 8px;
+                MetricTile {
+                    horizontal-stretch: 1;
+                    label: @tr("Unfinished downloads");
+                    value: root.count-unfinished;
+                    detail: @tr("Current workload");
+                    stripe: Theme.accent;
+                }
+                MetricTile {
+                    horizontal-stretch: 1;
+                    label: @tr("Completed downloads");
+                    value: root.count-finished;
+                    detail: @tr("Finished successfully");
+                    stripe: Theme.ok;
+                }
+                MetricTile {
+                    horizontal-stretch: 2;
+                    label: @tr("Transfer status");
+                    value: root.status-text;
+                    detail: root.limiter-text;
+                    stripe: Theme.warn;
+                }
+            }
+            if Theme.layout == 4: HRow {
+                height: 52px;
+                padding: 5px;
+                spacing: 6px;
+                MetricTile {
+                    horizontal-stretch: 1;
+                    label: @tr("Total");
+                    value: root.count-all;
+                    detail: @tr("Downloads");
+                    stripe: Theme.accent;
+                }
+                MetricTile {
+                    horizontal-stretch: 1;
+                    label: @tr("Completed");
+                    value: root.count-finished;
+                    detail: @tr("Files");
+                    stripe: Theme.ok;
+                }
+                MetricTile {
+                    horizontal-stretch: 2;
+                    label: @tr("Current status");
+                    value: root.status-text;
+                    detail: root.limiter-text;
+                    stripe: Theme.accent;
                 }
             }
 
