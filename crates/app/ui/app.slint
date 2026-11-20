@@ -635,7 +635,7 @@ component ProDetailsPanel inherits Rectangle {
                 HRow {
                     Text { text: @tr("Progress"); color: Theme.muted; font-size: 10px * Theme.font-scale; }
                     Rectangle { horizontal-stretch: 1; }
-                    Text { text: "" + round(r.progress * 100) + "%"; color: Theme.accent; font-size: 11px * Theme.font-scale; font-weight: 700; }
+                    Text { text: @tr("{}%", round(r.progress * 100)); color: Theme.accent; font-size: 11px * Theme.font-scale; font-weight: 700; }
                 }
                 Rectangle {
                     height: 8px;
@@ -2385,32 +2385,6 @@ export component MainWindow inherits ThemedWindow {
                 action(id, a) => { root.row-action(id, a); }
             }
 
-            if Theme.layout == 3: HRow {
-                height: 0px;
-                padding: 6px;
-                spacing: 8px;
-                MetricTile {
-                    horizontal-stretch: 1;
-                    label: @tr("Unfinished downloads");
-                    value: root.count-unfinished;
-                    detail: @tr("Current workload");
-                    stripe: Theme.accent;
-                }
-                MetricTile {
-                    horizontal-stretch: 1;
-                    label: @tr("Completed downloads");
-                    value: root.count-finished;
-                    detail: @tr("Finished successfully");
-                    stripe: Theme.ok;
-                }
-                MetricTile {
-                    horizontal-stretch: 2;
-                    label: @tr("Transfer status");
-                    value: root.status-text;
-                    detail: root.limiter-text;
-                    stripe: Theme.warn;
-                }
-            }
             if Theme.layout == 4: HRow {
                 height: 92px;
                 padding: 5px;
@@ -2429,7 +2403,7 @@ export component MainWindow inherits ThemedWindow {
                             visible: q.id == root.current-queue;
                             Text { text: q.name; color: Theme.text; font-size: 12px * Theme.font-scale; font-weight: 700; }
                             Rectangle { horizontal-stretch: 1; }
-                            Text { text: "" + q.count + "  ·  " + (q.running ? @tr("Running") : @tr("Waiting")); color: Theme.accent; font-size: 10px * Theme.font-scale; }
+                            Text { text: @tr("{}  ·  {}", q.count, q.running ? @tr("Running") : @tr("Waiting")); color: Theme.accent; font-size: 10px * Theme.font-scale; }
                         }
                         HRow {
                             spacing: 5px;
