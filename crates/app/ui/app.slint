@@ -565,6 +565,105 @@ component CtxTreeItem inherits TreeItem {
     }
 }
 
+component DashboardCard inherits Rectangle {
+    in property <DownloadRow> data;
+    in property <bool> selected: false;
+    in property <bool> compact: false;
+    callback pick();
+    callback activated();
+    callback pause();
+    callback resume();
+    callback action(string);
+    height: root.compact ? 54px : 132px;
+    background: root.selected ? Theme.select : Theme.panel;
+    border-width: root.selected ? 2px : 1px;
+    border-color: root.selected ? Theme.select-line : Theme.line;
+    border-radius: 10px;
+    // Card-wide selection and double-click. Action buttons are layered above it.
+    TouchArea {
+        clicked => { root.pick(); }
+        double-clicked => { root.activated(); }
+        mouse-cursor: pointer;
+    }
+    VerticalLayout {
+        padding: root.compact ? 5px : 9px;
+        spacing: root.compact ? 3px : 6px;
+        HRow {
+            spacing: 7px;
+            TypeIcon {
+                kind: root.data.kind;
+                width: root.compact ? 28px : 38px;
+                height: root.compact ? 28px : 38px;
+            }
+            VerticalLayout {
+                vertical-stretch: 1;
+                alignment: center;
+                Text {
+                    text: root.data.name;
+                    color: Theme.text;
+                    font-size: root.compact ? 10px * Theme.font-scale : 11px * Theme.font-scale;
+                    font-weight: 650;
+                    wrap: word-wrap;
+                    overflow: elide;
+                    vertical-alignment: center;
+                }
+                Text {
+                    text: root.data.category + "  ·  " + root.data.size;
+                    color: Theme.muted;
+                    font-size: 9px * Theme.font-scale;
+                    vertical-alignment: center;
+                }
+            }
+            Text {
+                text: root.data.status;
+                color: root.data.state == 3 ? Theme.ok : root.data.state == 4 ? Theme.err : root.data.state == 1 ? Theme.accent : Theme.warn;
+                font-size: 9px * Theme.font-scale;
+                vertical-alignment: center;
+            }
+        }
+        if !root.compact: Rectangle {
+            width: parent.width;
+            height: 6px;
+            border-radius: 3px;
+            background: Theme.bar-bg;
+            Rectangle {
+                width: parent.width * min(1.0, max(0.0, root.data.progress));
+                height: parent.height;
+                border-radius: 3px;
+                background: root.data.state == 4 ? Theme.err : Theme.accent;
+            }
+        }
+        HRow {
+            spacing: 6px;
+            Text {
+                text: root.compact ? root.data.last-try : root.data.speed;
+                color: Theme.accent;
+                font-size: 9px * Theme.font-scale;
+                vertical-alignment: center;
+                horizontal-stretch: 1;
+            }
+            Text {
+                text: root.compact ? root.data.description : root.data.eta;
+                color: Theme.muted;
+                font-size: 9px * Theme.font-scale;
+                vertical-alignment: center;
+            }
+            if !root.compact && root.data.state == 1: Button {
+                text: @tr("Pause");
+                clicked => { root.pause(); }
+            }
+            if !root.compact && (root.data.state == 0 || root.data.state == 2 || root.data.state == 4): Button {
+                text: @tr("Resume");
+                clicked => { root.resume(); }
+            }
+            Button {
+                text: root.compact ? @tr("Details") : "⋯";
+                clicked => { root.action("properties"); }
+            }
+        }
+    }
+}
+
 component MetricTile inherits Rectangle {
     in property <string> label;
     in property <string> value;
@@ -2012,7 +2111,7 @@ export component MainWindow inherits ThemedWindow {
                             }
                         }
                         Rectangle {
-                            height: 24px;
+                            height: Theme.layout == 2 ? 0px : 24px;
                             background: @linear-gradient(180deg, Theme.header-top 0%, Theme.header-bottom 100%);
                             clip: true;
                             // scrolls sideways together with the list (wide columns)
@@ -2060,7 +2159,8 @@ export component MainWindow inherits ThemedWindow {
                             }
                         }
                         lv := ListView {
-                            vertical-stretch: 1;
+                            visible: Theme.layout != 2;
+                            vertical-stretch: Theme.layout == 2 ? 0 : 1;
                             // Arabic: wide columns start at the right edge, so
                             // the list first shows its right side
                             property <length> rtl-start: Theme.rtl ? min(0px, self.visible-width - self.content-width) : 0px;
@@ -2105,6 +2205,81 @@ export component MainWindow inherits ThemedWindow {
                                 }
                                 move-to-queue(q) => {
                                     root.row-to-queue(r.id, q);
+                                }
+                            }
+                        }
+                        if Theme.layout == 2: Flickable {
+                            vertical-stretch: 1;
+                            clip: true;
+                            VerticalLayout {
+                                width: parent.width;
+                                padding: 8px;
+                                spacing: 9px;
+                                HRow {
+                                    Text {
+                                        text: @tr("Active downloads");
+                                        color: Theme.text;
+                                        font-size: 12px * Theme.font-scale;
+                                        font-weight: 700;
+                                        vertical-alignment: center;
+                                        horizontal-stretch: 1;
+                                    }
+                                    Text {
+                                        text: root.count-unfinished;
+                                        color: Theme.accent;
+                                        font-size: 11px * Theme.font-scale;
+                                    }
+                                }
+                                FlexboxLayout {
+                                    width: parent.width;
+                                    flex-direction: Theme.rtl ? FlexboxLayoutDirection.row-reverse : FlexboxLayoutDirection.row;
+                                    flex-wrap: wrap;
+                                    spacing: 8px;
+                                    alignment: start;
+                                    for r in root.rows: if r.state != 3: DashboardCard {
+                                        width: max(220px, (parent.width - 16px) / 3);
+                                        data: r;
+                                        selected: r.sel;
+                                        pick => {
+                                            root.row-clicked(r.id, false, false);
+                                            keys.focus();
+                                        }
+                                        activated => { root.row-activated(r.id); }
+                                        pause => { root.pause(r.id); }
+                                        resume => { root.resume(r.id); }
+                                        action(a) => { root.row-action(r.id, a); }
+                                    }
+                                }
+                                HRow {
+                                    padding-top: 4px;
+                                    Text {
+                                        text: @tr("Completed downloads");
+                                        color: Theme.text;
+                                        font-size: 12px * Theme.font-scale;
+                                        font-weight: 700;
+                                        vertical-alignment: center;
+                                        horizontal-stretch: 1;
+                                    }
+                                    Text {
+                                        text: root.count-finished;
+                                        color: Theme.ok;
+                                        font-size: 11px * Theme.font-scale;
+                                    }
+                                }
+                                VerticalLayout {
+                                    spacing: 5px;
+                                    for r in root.rows: if r.state == 3: DashboardCard {
+                                        width: parent.width;
+                                        data: r;
+                                        selected: r.sel;
+                                        compact: true;
+                                        pick => {
+                                            root.row-clicked(r.id, false, false);
+                                            keys.focus();
+                                        }
+                                        activated => { root.row-activated(r.id); }
+                                        action(a) => { root.row-action(r.id, a); }
+                                    }
                                 }
                             }
                         }
