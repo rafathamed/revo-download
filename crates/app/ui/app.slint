@@ -677,6 +677,9 @@ component DashboardCard inherits Rectangle {
     border-width: root.selected ? 2px : 1px;
     border-color: root.selected ? Theme.select-line : Theme.line;
     border-radius: 9px;
+    drop-shadow-blur: Theme.layout == 2 ? (root.selected ? 10px : 5px) : 0px;
+    drop-shadow-offset-y: Theme.layout == 2 ? 2px : 0px;
+    drop-shadow-color: #00000018;
     TouchArea {
         clicked => { root.pick(); }
         double-clicked => { root.activated(); }
@@ -830,7 +833,7 @@ component SelectionInspector inherits Rectangle {
         Text { x: 8px; y: 98px; width: root.width - 24px; height: 16px; text: @tr("File size") + ": " + r.size; color: Theme.text; font-size: 10px * Theme.font-scale; }
         Text { x: 8px; y: 118px; width: root.width - 24px; height: 16px; text: @tr("Transfer rate") + ": " + r.speed; color: Theme.accent; font-size: 10px * Theme.font-scale; }
         Text { x: 8px; y: 138px; width: root.width - 24px; height: 16px; text: @tr("Time left") + ": " + r.eta; color: Theme.muted; font-size: 10px * Theme.font-scale; }
-        if root.pro: Text {
+        Text {
             x: 8px; y: 160px; width: root.width - 24px; height: 40px;
             text: r.save-to; color: Theme.muted; font-size: 9px * Theme.font-scale; wrap: word-wrap; overflow: elide;
         }
@@ -2298,6 +2301,7 @@ export component MainWindow inherits ThemedWindow {
             }
 
             if Theme.layout == 3: ProDetailsPanel {
+                horizontal-stretch: 1;
                 rows: root.rows;
                 selected-id: root.selected-id;
                 pause(id) => { root.pause(id); }
