@@ -226,7 +226,7 @@ pub struct SiteLogin {
 pub const MAIN_QUEUE: u64 = 1;
 
 /// Bump when defaults change in a way old settings files should pick up.
-const SETTINGS_VERSION: u32 = 5;
+const SETTINGS_VERSION: u32 = 6;
 
 /// Columns of the download list that can be shown or hidden (View > Columns).
 pub const ALL_COLUMNS: [&str; 11] =
@@ -289,8 +289,7 @@ pub struct Settings {
     /// progress window for each download
     pub show_progress_window: bool,
     pub queues: Vec<QueueDef>,
-    /// 0 Light, 1 Dark, 2 Ocean, 3 Midnight, 4 Forest, 5 Black, 6 Sunset,
-    /// 7 Teal night, 8 Rose
+    /// Internal palette paired with the chosen workspace layout.
     pub theme: u32,
     /// Selected REVO workspace design: 0 Fluent Light, 1 Fluent Dark Inspector,
     /// 2 Mica Cards Dashboard, 3 Pro Workspace, 4 Compact Teal.
@@ -598,6 +597,25 @@ impl Settings {
             // v5: watching the clipboard is off until the user turns it on
             // (it reads everything that is copied)
             s.clipboard_monitor = false;
+        }
+        if s.version < 6 {
+            // v6: replace the legacy theme gallery with five workspace layouts.
+            // Preserve the closest familiar appearance, but normalize the old
+            // palette so legacy 3D/glass themes cannot leak into the new UI.
+            s.workspace_style = match s.theme {
+                1 | 3 | 9 | 10 | 12 => 1, // dark Fluent
+                11 => 2,                  // light Mica cards
+                5 => 3,                   // black Pro workspace
+                4 | 7 => 4,               // teal/green compact workspace
+                _ => 0,                   // Fluent light
+            };
+            s.theme = match s.workspace_style {
+                1 => 1,
+                2 => 11,
+                3 => 5,
+                4 => 4,
+                _ => 0,
+            };
         }
         s.version = SETTINGS_VERSION;
         if !s.queues.iter().any(|q| q.id == MAIN_QUEUE) {
