@@ -12,6 +12,7 @@ component DownloadItem inherits Rectangle {
     in property <DownloadRow> data;
     in property <bool> selected;
     in property <[QueueRow]> queues;
+    in property <bool> mica-cards: false;
     in property <Cols> cols;
     in property <[ColDef]> columns;
     // how many downloads are selected (the menu then works on all of them)
@@ -34,7 +35,7 @@ component DownloadItem inherits Rectangle {
     // dragging a finished file out of the program (onto the desktop, a folder…)
     callback drag-out();
     property <bool> dragged-out;
-    height: Theme.layout == 1 ? max(48px, 46px * Theme.font-scale) : Theme.layout == 2 ? max(42px, 40px * Theme.font-scale) : Theme.layout == 3 ? max(42px, 40px * Theme.font-scale) : Theme.layout == 4 ? max(34px, 32px * Theme.font-scale) : max(36px, 34px * Theme.font-scale);
+    height: Theme.layout == 2 && root.mica-cards ? 0px : Theme.layout == 1 ? max(48px, 46px * Theme.font-scale) : Theme.layout == 2 ? max(42px, 40px * Theme.font-scale) : Theme.layout == 3 ? max(42px, 40px * Theme.font-scale) : Theme.layout == 4 ? max(34px, 32px * Theme.font-scale) : max(36px, 34px * Theme.font-scale);
     // as wide as all the columns (the list then scrolls sideways)
     out property <length> content-w: cells.min-width;
     // wide columns: the row is wider than the list. The look and the mouse
@@ -670,7 +671,7 @@ component DashboardCard inherits Rectangle {
     callback pause();
     callback resume();
     callback action(string);
-    height: root.compact ? 54px : 126px;
+    height: Theme.layout == 2 && root.mica-cards ? (root.compact ? 54px : 126px) : 0px;
     background: root.selected ? Theme.select : Theme.panel;
     border-width: root.selected ? 2px : 1px;
     border-color: root.selected ? Theme.select-line : Theme.line;
@@ -2241,6 +2242,7 @@ export component MainWindow inherits ThemedWindow {
                                 // the highlight reach the name in Arabic too
                                 width: max(lv.visible-width, self.content-w);
                                 data: r;
+                                mica-cards: root.mica-cards;
                                 queues: root.queues;
                                 cols: root.cols;
                                 columns: root.columns;
