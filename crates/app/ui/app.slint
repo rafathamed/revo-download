@@ -681,6 +681,8 @@ component DashboardCard inherits Rectangle {
     drop-shadow-offset-y: Theme.layout == 2 ? 2px : 0px;
     drop-shadow-color: #00000018;
     TouchArea {
+        x: 0px; y: 0px;
+        width: parent.width; height: parent.height;
         clicked => { root.pick(); }
         double-clicked => { root.activated(); }
         mouse-cursor: pointer;
