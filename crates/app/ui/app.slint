@@ -575,107 +575,88 @@ component ProDetailsPanel inherits Rectangle {
     background: Theme.panel;
     border-width: 1px;
     border-color: Theme.line;
-    VerticalLayout {
-        padding: 9px;
-        spacing: 7px;
-        HRow {
-            height: 20px;
-            Text {
-                text: @tr("Download details");
-                color: Theme.text;
-                font-size: 12px * Theme.font-scale;
-                font-weight: 700;
-                vertical-alignment: center;
-            }
-            Rectangle { horizontal-stretch: 1; }
-            Text {
-                text: @tr("Live information");
-                color: Theme.accent;
-                font-size: 10px * Theme.font-scale;
-                vertical-alignment: center;
+    Text {
+        x: 12px; y: 8px; width: root.width - 24px; height: 18px;
+        text: @tr("Download details");
+        color: Theme.text; font-size: 12px * Theme.font-scale; font-weight: 700;
+    }
+    Rectangle {
+        x: 10px; y: 31px; width: root.width - 20px; height: 1px;
+        background: Theme.line;
+    }
+    if root.selected-id == -1: Text {
+        x: 12px; y: 52px; width: root.width - 24px; height: 24px;
+        text: @tr("Select a download to view its details.");
+        color: Theme.muted; font-size: 11px * Theme.font-scale;
+    }
+    for r in root.rows: Rectangle {
+        visible: r.id == root.selected-id;
+        x: 10px; y: 39px; width: root.width - 20px; height: 118px;
+        TypeIcon {
+            x: 0px; y: 5px; width: 42px; height: 42px;
+            kind: r.kind;
+        }
+        Text {
+            x: 52px; y: 3px; width: 245px; height: 22px;
+            text: r.name; color: Theme.text; font-size: 12px * Theme.font-scale;
+            font-weight: 700; overflow: elide;
+        }
+        Text {
+            x: 52px; y: 28px; width: 245px; height: 17px;
+            text: r.category + "  ·  " + r.size;
+            color: Theme.muted; font-size: 10px * Theme.font-scale; overflow: elide;
+        }
+        Text {
+            x: 52px; y: 49px; width: 245px; height: 44px;
+            text: r.save-to; color: Theme.muted; font-size: 9px * Theme.font-scale;
+            wrap: word-wrap; overflow: elide;
+        }
+        Text {
+            x: 318px; y: 6px; width: max(120px, root.width - 600px); height: 18px;
+            text: @tr("Progress") + "  ·  " + @tr("{}%", round(r.progress * 100));
+            color: Theme.accent; font-size: 11px * Theme.font-scale; font-weight: 700;
+        }
+        Rectangle {
+            x: 318px; y: 34px; width: max(120px, root.width - 600px); height: 8px;
+            border-radius: 4px; background: Theme.bar-bg;
+            Rectangle {
+                width: parent.width * min(1.0, max(0.0, r.progress));
+                height: parent.height; border-radius: 4px;
+                background: r.state == 4 ? Theme.err : Theme.accent;
             }
         }
-        Rectangle { height: 1px; background: Theme.line; }
-        if root.selected-id == -1: Text {
-            text: @tr("Select a download to view its details.");
-            color: Theme.muted;
-            vertical-alignment: center;
+        Text {
+            x: 318px; y: 51px; width: max(120px, root.width - 600px); height: 17px;
+            text: @tr("Transfer rate") + ": " + r.speed;
+            color: Theme.text; font-size: 10px * Theme.font-scale;
         }
-        for r in root.rows: HRow {
-            visible: r.id == root.selected-id;
-            vertical-stretch: 1;
-            spacing: 12px;
-            VerticalLayout {
-                width: 270px;
-                spacing: 5px;
-                Text {
-                    text: r.name;
-                    color: Theme.text;
-                    font-size: 12px * Theme.font-scale;
-                    font-weight: 700;
-                    wrap: word-wrap;
-                    overflow: elide;
-                }
-                Text {
-                    text: r.category + "  ·  " + r.size;
-                    color: Theme.muted;
-                    font-size: 10px * Theme.font-scale;
-                }
-                Text {
-                    text: r.save-to;
-                    color: Theme.muted;
-                    font-size: 9px * Theme.font-scale;
-                    wrap: word-wrap;
-                    overflow: elide;
-                }
-            }
-            VerticalLayout {
-                horizontal-stretch: 1;
-                spacing: 6px;
-                HRow {
-                    Text { text: @tr("Progress"); color: Theme.muted; font-size: 10px * Theme.font-scale; }
-                    Rectangle { horizontal-stretch: 1; }
-                    Text { text: @tr("{}%", round(r.progress * 100)); color: Theme.accent; font-size: 11px * Theme.font-scale; font-weight: 700; }
-                }
-                Rectangle {
-                    height: 8px;
-                    border-radius: 4px;
-                    background: Theme.bar-bg;
-                    Rectangle {
-                        width: parent.width * min(1.0, max(0.0, r.progress));
-                        height: parent.height;
-                        border-radius: 4px;
-                        background: r.state == 4 ? Theme.err : Theme.accent;
-                    }
-                }
-                HRow {
-                    Text { text: @tr("Transfer rate") + ": " + r.speed; color: Theme.text; font-size: 10px * Theme.font-scale; }
-                    Rectangle { horizontal-stretch: 1; }
-                    Text { text: @tr("Time left") + ": " + r.eta; color: Theme.muted; font-size: 10px * Theme.font-scale; }
-                }
-            }
-            VerticalLayout {
-                width: 170px;
-                spacing: 4px;
-                Text {
-                    text: r.status;
-                    color: r.state == 3 ? Theme.ok : r.state == 4 ? Theme.err : Theme.accent;
-                    font-size: 11px * Theme.font-scale;
-                    font-weight: 700;
-                }
-                if r.state == 1: Button {
-                    text: @tr("Pause");
-                    clicked => { root.pause(r.id); }
-                }
-                if r.state == 0 || r.state == 2 || r.state == 4: Button {
-                    text: @tr("Resume");
-                    clicked => { root.resume(r.id); }
-                }
-                Button {
-                    text: @tr("Properties");
-                    clicked => { root.action(r.id, "properties"); }
-                }
-            }
+        Text {
+            x: 318px; y: 72px; width: max(120px, root.width - 600px); height: 17px;
+            text: @tr("Time left") + ": " + r.eta;
+            color: Theme.muted; font-size: 10px * Theme.font-scale;
+        }
+        Text {
+            x: root.width - 250px; y: 5px; width: 230px; height: 19px;
+            text: r.status;
+            color: r.state == 3 ? Theme.ok : r.state == 4 ? Theme.err : Theme.accent;
+            font-size: 11px * Theme.font-scale; font-weight: 700;
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        }
+        if r.state == 1: Button {
+            x: root.width - 250px; y: 34px; width: 108px; height: 28px;
+            text: @tr("Pause"); clicked => { root.pause(r.id); }
+        }
+        if r.state == 0 || r.state == 2 || r.state == 4: Button {
+            x: root.width - 250px; y: 34px; width: 108px; height: 28px;
+            text: @tr("Resume"); clicked => { root.resume(r.id); }
+        }
+        Button {
+            x: root.width - 132px; y: 34px; width: 118px; height: 28px;
+            text: @tr("Properties"); clicked => { root.action(r.id, "properties"); }
+        }
+        Button {
+            x: root.width - 250px; y: 68px; width: 236px; height: 28px;
+            text: @tr("Open folder"); clicked => { root.action(r.id, "folder"); }
         }
     }
 }
@@ -689,93 +670,83 @@ component DashboardCard inherits Rectangle {
     callback pause();
     callback resume();
     callback action(string);
-    height: root.compact ? 54px : 132px;
+    height: root.compact ? 54px : 126px;
     background: root.selected ? Theme.select : Theme.panel;
     border-width: root.selected ? 2px : 1px;
     border-color: root.selected ? Theme.select-line : Theme.line;
-    border-radius: 10px;
-    // Card-wide selection and double-click. Action buttons are layered above it.
+    border-radius: 9px;
     TouchArea {
         clicked => { root.pick(); }
         double-clicked => { root.activated(); }
         mouse-cursor: pointer;
     }
-    VerticalLayout {
-        padding: root.compact ? 5px : 9px;
-        spacing: root.compact ? 3px : 6px;
-        HRow {
-            spacing: 7px;
-            TypeIcon {
-                kind: root.data.kind;
-                width: root.compact ? 28px : 38px;
-                height: root.compact ? 28px : 38px;
-            }
-            VerticalLayout {
-                vertical-stretch: 1;
-                alignment: center;
-                Text {
-                    text: root.data.name;
-                    color: Theme.text;
-                    font-size: root.compact ? 10px * Theme.font-scale : 11px * Theme.font-scale;
-                    font-weight: 650;
-                    wrap: word-wrap;
-                    overflow: elide;
-                    vertical-alignment: center;
-                }
-                Text {
-                    text: root.data.category + "  ·  " + root.data.size;
-                    color: Theme.muted;
-                    font-size: 9px * Theme.font-scale;
-                    vertical-alignment: center;
-                }
-            }
-            Text {
-                text: root.data.status;
-                color: root.data.state == 3 ? Theme.ok : root.data.state == 4 ? Theme.err : root.data.state == 1 ? Theme.accent : Theme.warn;
-                font-size: 9px * Theme.font-scale;
-                vertical-alignment: center;
-            }
+    TypeIcon {
+        x: Theme.rtl ? root.width - 49px : 10px;
+        y: root.compact ? 12px : 9px;
+        width: root.compact ? 29px : 38px;
+        height: root.compact ? 29px : 38px;
+        kind: root.data.kind;
+    }
+    Text {
+        x: Theme.rtl ? 10px : 57px;
+        y: 8px;
+        width: root.width - 118px;
+        height: 21px;
+        text: root.data.name;
+        color: Theme.text;
+        font-size: root.compact ? 10px * Theme.font-scale : 12px * Theme.font-scale;
+        font-weight: 700;
+        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        overflow: elide;
+    }
+    Text {
+        x: Theme.rtl ? 10px : 57px;
+        y: 30px;
+        width: root.width - 118px;
+        height: 16px;
+        text: root.data.category + "  ·  " + root.data.size;
+        color: Theme.muted;
+        font-size: 9px * Theme.font-scale;
+        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        overflow: elide;
+    }
+    Text {
+        x: 12px; y: root.compact ? 18px : 54px;
+        width: root.width - 130px; height: 16px;
+        text: root.data.status;
+        color: root.data.state == 3 ? Theme.ok : root.data.state == 4 ? Theme.err : root.data.state == 1 ? Theme.accent : Theme.warn;
+        font-size: 10px * Theme.font-scale;
+        horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+    }
+    if !root.compact: Rectangle {
+        x: 12px; y: 75px; width: root.width - 24px; height: 7px;
+        border-radius: 4px; background: Theme.bar-bg;
+        Rectangle {
+            width: parent.width * min(1.0, max(0.0, root.data.progress));
+            height: parent.height; border-radius: 4px;
+            background: root.data.state == 4 ? Theme.err : Theme.accent;
         }
-        if !root.compact: Rectangle {
-            width: parent.width;
-            height: 6px;
-            border-radius: 3px;
-            background: Theme.bar-bg;
-            Rectangle {
-                width: parent.width * min(1.0, max(0.0, root.data.progress));
-                height: parent.height;
-                border-radius: 3px;
-                background: root.data.state == 4 ? Theme.err : Theme.accent;
-            }
-        }
-        HRow {
-            spacing: 6px;
-            Text {
-                text: root.compact ? root.data.last-try : root.data.speed;
-                color: Theme.accent;
-                font-size: 9px * Theme.font-scale;
-                vertical-alignment: center;
-                horizontal-stretch: 1;
-            }
-            Text {
-                text: root.compact ? root.data.description : root.data.eta;
-                color: Theme.muted;
-                font-size: 9px * Theme.font-scale;
-                vertical-alignment: center;
-            }
-            if !root.compact && root.data.state == 1: Button {
-                text: @tr("Pause");
-                clicked => { root.pause(); }
-            }
-            if !root.compact && (root.data.state == 0 || root.data.state == 2 || root.data.state == 4): Button {
-                text: @tr("Resume");
-                clicked => { root.resume(); }
-            }
-            Button {
-                text: root.compact ? @tr("Details") : "⋯";
-                clicked => { root.action("properties"); }
-            }
-        }
+    }
+    Text {
+        x: 12px; y: root.compact ? 35px : 91px;
+        width: root.width - 112px; height: 16px;
+        text: root.compact ? root.data.last-try : root.data.speed + "  ·  " + root.data.eta;
+        color: Theme.muted; font-size: 9px * Theme.font-scale;
+        overflow: elide;
+    }
+    if !root.compact && root.data.state == 1: Button {
+        x: root.width - 94px; y: 89px; width: 78px; height: 27px;
+        text: @tr("Pause"); clicked => { root.pause(); }
+    }
+    if !root.compact && (root.data.state == 0 || root.data.state == 2 || root.data.state == 4): Button {
+        x: root.width - 94px; y: 89px; width: 78px; height: 27px;
+        text: @tr("Resume"); clicked => { root.resume(); }
+    }
+    Button {
+        x: root.width - 86px; y: root.compact ? 13px : 89px;
+        width: 70px; height: 26px;
+        text: root.compact ? @tr("Details") : "⋯";
+        clicked => { root.action("properties"); }
     }
 }
 
@@ -789,36 +760,23 @@ component MetricTile inherits Rectangle {
     border-color: Theme.line;
     border-radius: Theme.layout == 2 ? 11px : 5px;
     Rectangle {
-        x: 0;
-        y: 0;
-        width: 3px;
-        height: parent.height;
-        background: root.stripe;
-        border-radius: 2px;
+        x: 0px; y: 0px; width: 3px; height: parent.height;
+        background: root.stripe; border-radius: 2px;
     }
-    VerticalLayout {
-        padding: 8px;
-        padding-left: 12px;
-        spacing: 2px;
-        Text {
-            text: root.label;
-            color: Theme.muted;
-            font-size: 10px * Theme.font-scale;
-            vertical-alignment: center;
-        }
-        Text {
-            text: root.value;
-            color: Theme.text;
-            font-size: 17px * Theme.font-scale;
-            font-weight: 700;
-            vertical-alignment: center;
-        }
-        Text {
-            text: root.detail;
-            color: root.stripe;
-            font-size: 10px * Theme.font-scale;
-            vertical-alignment: center;
-        }
+    Text {
+        x: 12px; y: 7px; width: root.width - 22px; height: 14px;
+        text: root.label; color: Theme.muted; font-size: 10px * Theme.font-scale;
+        overflow: elide;
+    }
+    Text {
+        x: 12px; y: 25px; width: root.width - 22px; height: 22px;
+        text: root.value; color: Theme.text; font-size: 16px * Theme.font-scale;
+        font-weight: 700; overflow: elide;
+    }
+    Text {
+        x: 12px; y: 52px; width: root.width - 22px; height: 14px;
+        text: root.detail; color: root.stripe; font-size: 9px * Theme.font-scale;
+        overflow: elide;
     }
 }
 
@@ -833,118 +791,53 @@ component SelectionInspector inherits Rectangle {
     background: Theme.panel;
     border-width: 1px;
     border-color: Theme.line;
-    VerticalLayout {
-        padding: 10px;
-        spacing: 8px;
+    Text {
+        x: 10px; y: 10px; width: root.width - 20px; height: 20px;
+        text: @tr("Download inspector");
+        color: Theme.text; font-size: 13px * Theme.font-scale; font-weight: 700;
+    }
+    Rectangle { x: 8px; y: 36px; width: root.width - 16px; height: 1px; background: Theme.line; }
+    if root.selected-id == -1: Text {
+        x: 10px; y: 48px; width: root.width - 20px; height: 48px;
+        text: @tr("Select a download to inspect its details.");
+        color: Theme.muted; font-size: 11px * Theme.font-scale; wrap: word-wrap;
+    }
+    for r in root.rows: Rectangle {
+        visible: r.id == root.selected-id;
+        x: 6px; y: 44px; width: root.width - 12px; height: root.height - 50px;
+        TypeIcon { x: 8px; y: 8px; width: 42px; height: 42px; kind: r.kind; }
         Text {
-            text: root.pro ? @tr("Pro workspace inspector") : @tr("Download inspector");
-            color: Theme.text;
-            font-size: 13px * Theme.font-scale;
-            font-weight: 700;
+            x: 58px; y: 8px; width: root.width - 82px; height: 34px;
+            text: r.name; color: Theme.text; font-size: 11px * Theme.font-scale;
+            font-weight: 700; wrap: word-wrap; overflow: elide;
+            horizontal-alignment: Theme.rtl ? TextHorizontalAlignment.right : TextHorizontalAlignment.left;
+        }
+        Text {
+            x: 8px; y: 58px; width: root.width - 24px; height: 18px;
+            text: r.status; color: r.state == 3 ? Theme.ok : r.state == 4 ? Theme.err : Theme.accent;
+            font-size: 11px * Theme.font-scale; font-weight: 700;
         }
         Rectangle {
-            width: parent.width;
-            height: 1px;
-            background: Theme.line;
-        }
-        if root.selected-id == -1: Text {
-            text: @tr("Select a download to inspect its details.");
-            color: Theme.muted;
-            wrap: word-wrap;
-            font-size: 11px * Theme.font-scale;
-        }
-        for r in root.rows: VerticalLayout {
-            visible: r.id == root.selected-id;
-            spacing: 8px;
-            HRow {
-                spacing: 8px;
-                TypeIcon {
-                    kind: r.kind;
-                    width: 42px;
-                    height: 42px;
-                }
-                VerticalLayout {
-                    vertical-stretch: 1;
-                    alignment: center;
-                    Text {
-                        text: r.name;
-                        color: Theme.text;
-                        font-size: 12px * Theme.font-scale;
-                        font-weight: 700;
-                        wrap: word-wrap;
-                    }
-                    Text {
-                        text: r.status;
-                        color: r.state == 3 ? Theme.ok : r.state == 4 ? Theme.err : Theme.accent;
-                        font-size: 10px * Theme.font-scale;
-                    }
-                }
-            }
+            x: 8px; y: 82px; width: root.width - 28px; height: 7px;
+            border-radius: 4px; background: Theme.bar-bg;
             Rectangle {
-                width: parent.width;
-                height: 7px;
-                border-radius: 4px;
-                background: Theme.bar-bg;
-                Rectangle {
-                    width: parent.width * min(1.0, max(0.0, r.progress));
-                    height: parent.height;
-                    border-radius: 4px;
-                    background: Theme.accent;
-                }
-            }
-            HRow {
-                Text { text: @tr("File size"); color: Theme.muted; font-size: 10px * Theme.font-scale; horizontal-stretch: 1; }
-                Text { text: r.size; color: Theme.text; font-size: 10px * Theme.font-scale; }
-            }
-            HRow {
-                Text { text: @tr("Transfer rate"); color: Theme.muted; font-size: 10px * Theme.font-scale; horizontal-stretch: 1; }
-                Text { text: r.speed; color: Theme.accent; font-size: 10px * Theme.font-scale; }
-            }
-            HRow {
-                Text { text: @tr("Time left"); color: Theme.muted; font-size: 10px * Theme.font-scale; horizontal-stretch: 1; }
-                Text { text: r.eta; color: Theme.text; font-size: 10px * Theme.font-scale; }
-            }
-            if root.pro: VerticalLayout {
-                spacing: 4px;
-                Text {
-                    text: @tr("Save location");
-                    color: Theme.muted;
-                    font-size: 10px * Theme.font-scale;
-                }
-                Text {
-                    text: r.save-to;
-                    color: Theme.text;
-                    font-size: 10px * Theme.font-scale;
-                    wrap: word-wrap;
-                }
-                Text {
-                    text: r.description;
-                    color: Theme.muted;
-                    font-size: 10px * Theme.font-scale;
-                    wrap: word-wrap;
-                }
-            }
-            if r.state == 1: Button {
-                text: @tr("Pause");
-                clicked => { root.pause(r.id); }
-            }
-            if r.state == 0 || r.state == 2 || r.state == 4: Button {
-                text: @tr("Resume");
-                clicked => { root.resume(r.id); }
-            }
-            Button {
-                text: @tr("Open folder");
-                clicked => { root.action(r.id, "folder"); }
-            }
-            Button {
-                text: @tr("Properties");
-                clicked => { root.action(r.id, "properties"); }
+                width: parent.width * min(1.0, max(0.0, r.progress));
+                height: parent.height; border-radius: 4px; background: Theme.accent;
             }
         }
+        Text { x: 8px; y: 98px; width: root.width - 24px; height: 16px; text: @tr("File size") + ": " + r.size; color: Theme.text; font-size: 10px * Theme.font-scale; }
+        Text { x: 8px; y: 118px; width: root.width - 24px; height: 16px; text: @tr("Transfer rate") + ": " + r.speed; color: Theme.accent; font-size: 10px * Theme.font-scale; }
+        Text { x: 8px; y: 138px; width: root.width - 24px; height: 16px; text: @tr("Time left") + ": " + r.eta; color: Theme.muted; font-size: 10px * Theme.font-scale; }
+        if root.pro: Text {
+            x: 8px; y: 160px; width: root.width - 24px; height: 40px;
+            text: r.save-to; color: Theme.muted; font-size: 9px * Theme.font-scale; wrap: word-wrap; overflow: elide;
+        }
+        if r.state == 1: Button { x: 8px; y: root.height - 68px; width: root.width - 24px; height: 27px; text: @tr("Pause"); clicked => { root.pause(r.id); } }
+        if r.state == 0 || r.state == 2 || r.state == 4: Button { x: 8px; y: root.height - 68px; width: root.width - 24px; height: 27px; text: @tr("Resume"); clicked => { root.resume(r.id); } }
+        Button { x: 8px; y: root.height - 35px; width: root.width - 24px; height: 27px; text: @tr("Properties"); clicked => { root.action(r.id, "properties"); } }
     }
 }
 
-// ------------------------------------------------------------------ main window
 export component MainWindow inherits ThemedWindow {
     // set for a moment so the window comes in front of the browser
     in property <bool> front;
@@ -2316,7 +2209,7 @@ export component MainWindow inherits ThemedWindow {
                             }
                         }
                         lv := ListView {
-                            visible: Theme.layout != 2 || !root.mica-cards;
+                            visible: true;
                             vertical-stretch: 1;
                             // Arabic: wide columns start at the right edge, so
                             // the list first shows its right side
@@ -2327,7 +2220,23 @@ export component MainWindow inherits ThemedWindow {
                             init => {
                                 self.content-x = self.rtl-start;
                             }
+                            for r in root.rows: DashboardCard {
+                                visible: Theme.layout == 2 && root.mica-cards;
+                                width: lv.visible-width;
+                                data: r;
+                                selected: r.sel;
+                                compact: r.state == 3;
+                                pick => {
+                                    root.row-clicked(r.id, false, false);
+                                    keys.focus();
+                                }
+                                activated => { root.row-activated(r.id); }
+                                pause => { root.pause(r.id); }
+                                resume => { root.resume(r.id); }
+                                action(a) => { root.row-action(r.id, a); }
+                            }
                             for r in root.rows: DownloadItem {
+                                visible: Theme.layout != 2 || !root.mica-cards;
                                 // every row as wide as its columns: the mouse and
                                 // the highlight reach the name in Arabic too
                                 width: max(lv.visible-width, self.content-w);
@@ -2365,84 +2274,6 @@ export component MainWindow inherits ThemedWindow {
                                 }
                             }
                         }
-                        if Theme.layout == 2: Flickable {
-                            visible: root.mica-cards;
-                            vertical-stretch: 1;
-                            VerticalLayout {
-                                width: parent.width;
-                                padding: 8px;
-                                spacing: 9px;
-                                HRow {
-                                    Text {
-                                        text: @tr("Active downloads");
-                                        color: Theme.text;
-                                        font-size: 12px * Theme.font-scale;
-                                        font-weight: 700;
-                                        vertical-alignment: center;
-                                        horizontal-stretch: 1;
-                                    }
-                                    Text {
-                                        text: root.count-unfinished;
-                                        color: Theme.accent;
-                                        font-size: 11px * Theme.font-scale;
-                                    }
-                                }
-                                FlexboxLayout {
-                                    width: parent.width;
-                                    flex-direction: Theme.rtl ? FlexboxLayoutDirection.row-reverse : FlexboxLayoutDirection.row;
-                                    flex-wrap: wrap;
-                                    spacing: 8px;
-                                    alignment: start;
-                                    for r in root.rows: DashboardCard {
-                                        visible: r.state != 3;
-                                        width: max(220px, (parent.width - 16px) / 3);
-                                        data: r;
-                                        selected: r.sel;
-                                        pick => {
-                                            root.row-clicked(r.id, false, false);
-                                            keys.focus();
-                                        }
-                                        activated => { root.row-activated(r.id); }
-                                        pause => { root.pause(r.id); }
-                                        resume => { root.resume(r.id); }
-                                        action(a) => { root.row-action(r.id, a); }
-                                    }
-                                }
-                                HRow {
-                                    padding-top: 4px;
-                                    Text {
-                                        text: @tr("Completed downloads");
-                                        color: Theme.text;
-                                        font-size: 12px * Theme.font-scale;
-                                        font-weight: 700;
-                                        vertical-alignment: center;
-                                        horizontal-stretch: 1;
-                                    }
-                                    Text {
-                                        text: root.count-finished;
-                                        color: Theme.ok;
-                                        font-size: 11px * Theme.font-scale;
-                                    }
-                                }
-                                VerticalLayout {
-                                    spacing: 5px;
-                                    for r in root.rows: DashboardCard {
-                                        visible: r.state == 3;
-                                        width: parent.width;
-                                        data: r;
-                                        selected: r.sel;
-                                        compact: true;
-                                        pick => {
-                                            root.row-clicked(r.id, false, false);
-                                            keys.focus();
-                                        }
-                                        activated => { root.row-activated(r.id); }
-                                        action(a) => { root.row-action(r.id, a); }
-                                    }
-                                }
-                            }
-                        }
-                    }
                     if root.rows.length == 0: Text {
                         x: 0;
                         y: 120px;
