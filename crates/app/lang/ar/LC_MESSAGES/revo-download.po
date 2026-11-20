@@ -1129,3 +1129,6 @@ msgstr "الحالة الحالية"
 
 msgid "in progress"
 msgstr "قيد التنفيذ"
+
+msgid "Workspace appearance…"
+msgstr "مظهر مساحة العمل…"

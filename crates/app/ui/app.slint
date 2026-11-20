@@ -1401,92 +1401,10 @@ export component MainWindow inherits ThemedWindow {
                     activated => { root.set-layout(4); }
                 }
             }
-            Menu {
-                title: @tr("Color palette");
-                MenuItem {
-                    title: (Theme.mode == 0 ? "● " : "○ ") + @tr("Light");
-                    activated => {
-                        root.set-theme(0);
-                    }
-                }
-                MenuItem {
-                    title: (Theme.mode == 1 ? "● " : "○ ") + @tr("Dark");
-                    activated => {
-                        root.set-theme(1);
-                    }
-                }
-                MenuItem {
-                    title: (Theme.mode == 2 ? "● " : "○ ") + @tr("Ocean blue");
-                    activated => {
-                        root.set-theme(2);
-                    }
-                }
-                MenuItem {
-                    title: (Theme.mode == 3 ? "● " : "○ ") + @tr("Midnight purple");
-                    activated => {
-                        root.set-theme(3);
-                    }
-                }
-                MenuItem {
-                    title: (Theme.mode == 4 ? "● " : "○ ") + @tr("Forest green");
-                    activated => {
-                        root.set-theme(4);
-                    }
-                }
-                MenuItem {
-                    title: (Theme.mode == 5 ? "● " : "○ ") + @tr("Black");
-                    activated => {
-                        root.set-theme(5);
-                    }
-                }
-                MenuItem {
-                    title: (Theme.mode == 6 ? "● " : "○ ") + @tr("Sunset");
-                    activated => {
-                        root.set-theme(6);
-                    }
-                }
-                MenuItem {
-                    title: (Theme.mode == 7 ? "● " : "○ ") + @tr("Teal night");
-                    activated => {
-                        root.set-theme(7);
-                    }
-                }
-                MenuItem {
-                    title: (Theme.mode == 8 ? "● " : "○ ") + @tr("Rose");
-                    activated => {
-                        root.set-theme(8);
-                    }
-                }
-                MenuItem {
-                    title: (Theme.mode == 9 ? "● " : "○ ") + @tr("3D");
-                    activated => {
-                        root.set-theme(9);
-                    }
-                }
-                MenuItem {
-                    title: (Theme.mode == 10 ? "● " : "○ ") + @tr("Aurora glass");
-                    activated => {
-                        root.set-theme(10);
-                    }
-                }
-                MenuItem {
-                    title: (Theme.mode == 11 ? "● " : "○ ") + @tr("Soft clay");
-                    activated => {
-                        root.set-theme(11);
-                    }
-                }
-                MenuItem {
-                    title: (Theme.mode == 12 ? "● " : "○ ") + @tr("Cyber neon");
-                    activated => {
-                        root.set-theme(12);
-                    }
-                }
-                MenuSeparator { }
-                MenuItem {
-                    title: @tr("Appearance…");
-                    activated => {
-                        root.open-settings(9);
-                    }
+            MenuItem {
+                title: @tr("Workspace appearance…");
+                activated => {
+                    root.open-settings(9);
                 }
             }
         }

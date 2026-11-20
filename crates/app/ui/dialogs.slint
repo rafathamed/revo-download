@@ -1986,7 +1986,7 @@ export component SettingsDialog inherits ThemedWindow {
     in-out property <int> tab: 0;
     // General
     in-out property <int> language;
-    in-out property <int> theme;
+    in-out property <int> workspace-layout;
     // how solid the main window is, 50..100 %
     in-out property <float> window-opacity: 100;
     // called while the slider moves, so the window shows it at once
@@ -2134,12 +2134,15 @@ export component SettingsDialog inherits ThemedWindow {
                     HRow {
                         spacing: 8px;
                         Label {
-                            text: @tr("Theme");
+                            text: @tr("Workspace layout");
                         }
                         ComboBox {
-                            width: 200px;
-                            model: [@tr("Light"), @tr("Dark"), @tr("Ocean blue"), @tr("Midnight purple"), @tr("Forest green"), @tr("Black"), @tr("Sunset"), @tr("Teal night"), @tr("Rose"), @tr("3D"), @tr("Aurora glass"), @tr("Soft clay"), @tr("Cyber neon")];
-                            current-index <=> root.theme;
+                            width: 250px;
+                            model: [@tr("Fluent Light"), @tr("Fluent Dark Inspector"), @tr("Mica Cards Dashboard"), @tr("Pro Workspace"), @tr("Compact Teal")];
+                            current-index <=> root.workspace-layout;
+                            selected => {
+                                root.preview-look();
+                            }
                         }
                         Rectangle {
                             horizontal-stretch: 1;
