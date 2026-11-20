@@ -34,7 +34,7 @@ component DownloadItem inherits Rectangle {
     // dragging a finished file out of the program (onto the desktop, a folder…)
     callback drag-out();
     property <bool> dragged-out;
-    height: Theme.layout == 4 ? max(22px, 22px * Theme.font-scale) : Theme.depth ? max(40px, 34px * Theme.font-scale) : max(24px, 24px * Theme.font-scale);
+    height: Theme.layout == 1 ? max(48px, 46px * Theme.font-scale) : Theme.layout == 2 ? max(42px, 40px * Theme.font-scale) : Theme.layout == 3 ? max(42px, 40px * Theme.font-scale) : Theme.layout == 4 ? max(34px, 32px * Theme.font-scale) : max(36px, 34px * Theme.font-scale);
     // as wide as all the columns (the list then scrolls sideways)
     out property <length> content-w: cells.min-width;
     // wide columns: the row is wider than the list. The look and the mouse
@@ -1732,7 +1732,7 @@ export component MainWindow inherits ThemedWindow {
                 // are cut in a narrow window, as before)
                 property <bool> small-now: root.toolbar-small || Theme.layout == 4 || (Theme.font-scale > 1.05 && self.width < self.full-need);
                 // bigger text (Options > Appearance): a taller bar, the names are never cut
-                height: tb.small-now ? 42px : max(64px, 38px + 26px * Theme.font-scale);
+                height: tb.small-now ? 42px : Theme.layout == 2 ? 50px : Theme.layout == 3 ? 58px : max(64px, 38px + 26px * Theme.font-scale);
                 min-width: 0px;
                 clip: true;
                 background: @linear-gradient(180deg, Theme.toolbar-top 0%, Theme.toolbar-bottom 100%);
@@ -1935,12 +1935,38 @@ export component MainWindow inherits ThemedWindow {
                 }
             }
 
+            if Theme.layout != 2: HRow {
+                height: 28px;
+                padding-left: 8px;
+                padding-right: 8px;
+                spacing: 5px;
+                Button {
+                    text: root.view == "all" ? "● " + @tr("All") : @tr("All");
+                    clicked => { root.view = "all"; root.view-changed(root.view); }
+                }
+                Button {
+                    text: root.view == "unfinished" ? "● " + @tr("In progress") : @tr("In progress");
+                    clicked => { root.view = "unfinished"; root.view-changed(root.view); }
+                }
+                Button {
+                    text: root.view == "finished" ? "● " + @tr("Completed") : @tr("Completed");
+                    clicked => { root.view = "finished"; root.view-changed(root.view); }
+                }
+                Rectangle { horizontal-stretch: 1; }
+                Text {
+                    text: root.count-all + "  ·  " + root.count-unfinished + " " + @tr("in progress");
+                    color: Theme.muted;
+                    font-size: 10px * Theme.font-scale;
+                    vertical-alignment: center;
+                }
+            }
+
             HRow {
                 vertical-stretch: 1;
                 padding: 4px;
                 spacing: 4px;
                 // ---- tree
-                if !root.hide-categories: Rectangle {
+                if !root.hide-categories && Theme.layout != 4: Rectangle {
                     width: Theme.layout == 4 ? 168px : Theme.layout == 1 ? 190px : 210px;
                     background: Theme.panel;
                     border-width: 1px;
@@ -2113,6 +2139,65 @@ export component MainWindow inherits ThemedWindow {
                                     root.edit-queue(root.current-queue);
                                 }
                             }
+                        }
+                    }
+                }
+
+                if !root.hide-categories && Theme.layout == 4: Rectangle {
+                    width: 62px;
+                    background: Theme.panel;
+                    border-width: 1px;
+                    border-color: Theme.line;
+                    VerticalLayout {
+                        padding: 6px;
+                        spacing: 7px;
+                        alignment: center;
+                        ToolBtn {
+                            icon: "add";
+                            text: @tr("Downloads");
+                            small: true;
+                            clicked => {
+                                root.view = "all";
+                                root.view-changed(root.view);
+                            }
+                        }
+                        ToolBtn {
+                            icon: "startqueue";
+                            text: @tr("Queues");
+                            small: true;
+                            clicked => { root.open-queues = !root.open-queues; }
+                        }
+                        ToolSeparator { }
+                        ToolBtn {
+                            icon: "scheduler";
+                            text: @tr("Scheduler");
+                            small: true;
+                            clicked => { root.open-scheduler(); }
+                        }
+                        ToolBtn {
+                            icon: "grabber";
+                            text: @tr("Grabber");
+                            small: true;
+                            clicked => { root.grabber(); }
+                        }
+                        ToolBtn {
+                            icon: "playlist";
+                            text: @tr("Playlist");
+                            small: true;
+                            clicked => { root.playlist(); }
+                        }
+                        ToolBtn {
+                            icon: "torrent";
+                            text: @tr("Torrent");
+                            small: true;
+                            clicked => { root.torrent(); }
+                        }
+                        Rectangle { vertical-stretch: 1; }
+                        ToolBtn {
+                            icon: "options";
+                            text: @tr("Options");
+                            small: true;
+                            clicked => { root.open-settings(0); }
                         }
                     }
                 }

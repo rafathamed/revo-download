@@ -1019,18 +1019,18 @@ export component ToolBtn inherits Rectangle {
     in property <bool> small;
     callback clicked();
     // small buttons: every one fits a 960 px wide window
-    width: root.small ? 34px : max(56px, 56px * Theme.font-scale);
-    height: root.small ? 34px : max(56px, 30px + 26px * Theme.font-scale);
+    width: root.small ? 34px : Theme.layout == 2 ? 66px : max(56px, 56px * Theme.font-scale);
+    height: root.small ? 34px : Theme.layout == 2 ? 42px : max(56px, 30px + 26px * Theme.font-scale);
     // a name that is still too long never covers the next button
     clip: !Theme.depth;
-    border-radius: Theme.depth ? Theme.card-radius + 2px : 3px;
-    border-width: Theme.depth ? 1px : ta.has-hover && root.enabled ? 1px : 0px;
-    border-color: Theme.depth ? (ta.has-hover && root.enabled ? Theme.btn-hover-line : Theme.btn-line) : Theme.select-line;
+    border-radius: Theme.depth ? Theme.card-radius + 2px : (Theme.layout == 2 || Theme.layout == 4 || Theme.layout == 1) ? 8px : 3px;
+    border-width: Theme.depth || Theme.layout == 2 || Theme.layout == 4 || Theme.layout == 1 ? 1px : ta.has-hover && root.enabled ? 1px : 0px;
+    border-color: Theme.depth ? (ta.has-hover && root.enabled ? Theme.btn-hover-line : Theme.btn-line) : (Theme.layout == 2 || Theme.layout == 4 || Theme.layout == 1) ? Theme.line : Theme.select-line;
     background: Theme.depth
         ? (ta.pressed && root.enabled ? @linear-gradient(180deg, Theme.btn-bottom 0%, Theme.btn-top 100%)
             : ta.has-hover && root.enabled ? @linear-gradient(180deg, Theme.dark ? Theme.btn-top.brighter(25%) : Theme.btn-top 0%, Theme.btn-bottom 100%)
             : @linear-gradient(180deg, Theme.btn-top 0%, Theme.btn-bottom 100%))
-        : !root.enabled ? transparent : ta.pressed ? Theme.select : ta.has-hover ? Theme.toolbar-hover : transparent;
+        : !root.enabled ? transparent : ta.pressed ? Theme.select : ta.has-hover ? Theme.toolbar-hover : (Theme.layout == 2 || Theme.layout == 4 || Theme.layout == 1) ? Theme.panel : transparent;
     drop-shadow-blur: Theme.depth ? (ta.pressed ? 3px : 10px) : 0px;
     drop-shadow-offset-y: Theme.depth ? (ta.pressed ? 1px : Theme.look == 3 ? 5px : 4px) : 0px;
     drop-shadow-color: Theme.depth ? (Theme.look == 3 && ta.has-hover ? #00d1ff66 : Theme.btn-shadow) : transparent;
