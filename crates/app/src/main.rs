@@ -2724,6 +2724,8 @@ pub(crate) fn open_add_dialog(ctx: &Ctx, url: String, headers: RequestHeaders, n
     }
     // nothing may be left over from an earlier window
     cancel_early(ctx);
+    // Use the current settings snapshot for categories, credentials and queue defaults.
+    let s = ctx.mgr.settings();
     // General first, like the classic list
     let mut cats = vec!["General".to_string()];
     cats.extend(s.categories.iter().map(|c| c.name.clone()));
