@@ -108,7 +108,10 @@ pub fn split_largest(segs: &mut Vec<Segment>, min_split: u64) -> Option<usize> {
         .filter(|(_, s)| s.active && !s.is_finished())
         .map(|(i, s)| (i, s.remaining()))
         .max_by_key(|(_, r)| *r)?;
-    if rem < min_split * 2 {
+    // Compare by halves instead of multiplying: `min_split * 2` can
+    // overflow for a large caller-supplied threshold and accidentally allow
+    // a split into pieces smaller than the requested minimum.
+    if rem / 2 < min_split {
         return None;
     }
     let mid = segs[idx].pos + rem / 2;
@@ -201,6 +204,15 @@ mod tests {
         // no download running: everything counts
         let idle = vec![Segment { pos: 50, ..Segment::new(0, 100) }];
         assert_eq!(as_on_disk(&idle)[0].pos, 50);
+    }
+
+    #[test]
+    fn huge_min_split_never_overflows_into_a_tiny_split() {
+        let mut segs = vec![Segment::new(0, 100)];
+        segs[0].active = true;
+        assert!(claim_work(&mut segs, 1_u64 << 63).is_none());
+        assert_eq!(segs.len(), 1);
+        assert_eq!(segs[0].end, 100);
     }
 
     #[test]
