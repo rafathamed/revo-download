@@ -108,7 +108,9 @@ pub fn split_largest(segs: &mut Vec<Segment>, min_split: u64) -> Option<usize> {
         .filter(|(_, s)| s.active && !s.is_finished())
         .map(|(i, s)| (i, s.remaining()))
         .max_by_key(|(_, r)| *r)?;
-    if rem < min_split * 2 {
+    // Saturate before doubling: a caller-supplied minimum near u64::MAX
+    // must never wrap and accidentally permit a split below that minimum.
+    if rem < min_split.saturating_mul(2) {
         return None;
     }
     let mid = segs[idx].pos + rem / 2;
@@ -180,6 +182,15 @@ mod tests {
         segs[0].active = true;
         segs[0].pos = 90;
         assert!(claim_work(&mut segs, 10).is_none());
+    }
+
+    #[test]
+    fn huge_minimum_never_wraps_and_allows_a_split() {
+        let mut segs = vec![Segment::new(0, 100)];
+        segs[0].active = true;
+        assert!(claim_work(&mut segs, u64::MAX).is_none());
+        assert_eq!(segs.len(), 1);
+        assert_eq!(segs[0].end, 100);
     }
 
     #[test]
