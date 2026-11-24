@@ -1,6 +1,7 @@
 name: Build REVO Download for Windows
 
 # Every push: build and keep the result as an artifact.
+# This branch push is used to produce a Windows x64 verification build.
 # A push to main whose commit message contains [release] also publishes a
 # GitHub release v<version> with the setup and version.json; installed
 # copies of the program read version.json of the latest release
